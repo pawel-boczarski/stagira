@@ -1,0 +1,93 @@
+- predefined expressions
+
+set[x](y) - writes value y to cell no. x
+// get[x](y) - writes the contents of cell no. y to cell no. x
+val(x) - return the value at x
+seq[](i1, i2, i3...) - perform sequentially
+
+0 ... 4096 - address space
+in - input
+out - output
+
+get[stack](10) - returns value of cell 10
+set[stack](10) - returns 10
+
+set[10](in) - read value for cell 10
+set[out](10) print value of cell 10
+get[out](10)
+
+sum[z](x,y) - set z to sum of x and y
+
+eq(x,y) - x is equal to y
+less(x,y) - x is less than y
+and(x,y) - x nonzero and y nonzero
+not(x) - x is zero
+or(x,y) - x nonzero or y nonzero
+
+
+cond(c, exp1, exp2) - perform exp1 if c true, exp2 otherwise
+until(c, exp) - perform exp1 as long as exp is true
+
+
+
+(x)[out] print: set[out](x)
+
+(x)[out] printval: set[out](val(x))
+
+(y)[x] get: set[x](val(y))
+
+(x,y)[value] maximum: cond(leq(x,y), set[value](y), set[value](x))
+
+maximum[max](10,20)
+
+set[out](max[stack](10,20)) => 20
+
+[out]: print(10)
+(3)[1]: set[1](3)
+
+<now> "increment the value if other is less" (10,5)[5]: cond(less(value(5), value(10)), set[5](add[stack](get[stack](5),1)))
+<each 3sec> "monitor value of cell 0" (0)[out]: print(3)
+
+<now> { preset } [0]: set[0](10);
+<now> { preset } [1]: set[1](5);
+<now> { preset } [2]: set[2](4);
+<now> { preset } [3]: set[3](20);
+
+<call-from bubble-sort> {perform single bubble step} (x,y,4)[x,y,4] :
+      cond(less(val(y),val(x)),
+           seq(get[4](x), get[x](y), get(y)[4]))
+"singleBubble";
+
+<call> {to sort a table of elements} (0,1,2,3)[0,1,2,3] :
+     seq( singleBubble[(0,1)], singleBubble[(1,2)], singleBubble[(2,3)],
+          singleBubble[(0,1)], singleBubble[(1,2)], singleBubble[(2,3)],
+          singleBubble[(0,1)], singleBubble[(1,2)], singleBubble[(2,3)],
+         )
+"bubble-sort";
+
+singleBubble[0,1](-,-)
+
+<now> {for printing a sorted table} (0,1,2,3)[0,1,2,3] bubble-sort[]();
+<now> [out] print(0)
+<now> [out] print(1)
+<now> [out] print(2)
+<now> [out] print(3)
+
+repeat(5)<<x>>
+
+-------------------
+EFFICIENT: call
+FINAL: "for fun"
+SPECIES:
+	x,y
+MATTER:
+	out
+FORM:
+	seq(print(val(x), print(val(y)))
+NAME: printTwoVals
+;
+
+EFFICIENT: now
+FINAL: "check"
+FORM: printTwoVals(10, 20);
+
