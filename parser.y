@@ -6,6 +6,7 @@ int universe[1024];
 %}
 
 %union {
+   struct ast *a;
    int i;
    char s[64];
 };
