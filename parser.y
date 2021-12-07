@@ -1,5 +1,6 @@
 %{
 #include <stdio.h>
+#include "helpers.h"
 int yyerror(char *s);
 
 int universe[1024];
@@ -11,8 +12,8 @@ int universe[1024];
    char s[64];
 };
 
-%token<s> LITERAL
-%token<i> NUMBER
+%token<a> LITERAL
+%token<a> NUMBER
 %token L_SQ_BRA
 %token R_SQ_BRA
 %token L_PAREN
@@ -24,38 +25,54 @@ int universe[1024];
 %token COMMA
 %token UNRECOGNIZED
 
+%type<a> term
+//%type<a> termlist
+%type<a> paren_termlist_start
+%type<a> paren_termlist_progress
+%type<a> paren_termlist
+
 %%
 
 stmt: command
     | stmt command
 ;
 
-command: NUMBER SEMICOLON { printf("=> %d\n", $1); }
-    | LITERAL SEMICOLON { printf("=> '%s'\n", $1); }
-    | pure_function_call SEMICOLON { printf("Pure function call\n"); }
-    | pure_procedure_call SEMICOLON { printf("Pure procedure call\n"); }
-    | procedure_call SEMICOLON { printf("Procedure call\n"); }
+command: NUMBER SEMICOLON { /*printf("=> %d\n", $1);*/ ast_debug_print($1); }
+    | LITERAL SEMICOLON { /*printf("=> '%s'\n", $1);*/ ast_debug_print($1); }
+    | paren_termlist SEMICOLON { /*printf("'%s'\n", $1);*/ ast_debug_print($1); }
+    
+//    | pure_function_call SEMICOLON { printf("Pure function call\n"); }
+//    | pure_procedure_call SEMICOLON { printf("Pure procedure call\n"); }
+//    | procedure_call SEMICOLON { printf("Procedure call\n"); }
+//    | termlist SEMICOLON { ast_debug_print($1); } // debug only
     
 ;
 
-pure_function_call: LITERAL L_PAREN termlist R_PAREN
-;
+//pure_function_call: LITERAL paren_termlist
+//;
 
-pure_procedure_call: LITERAL L_SQ_BRA termlist R_SQ_BRA
-;
+//pure_procedure_call: LITERAL L_SQ_BRA termlist R_SQ_BRA
+//;
 
-procedure_call: LITERAL L_SQ_BRA termlist R_SQ_BRA L_PAREN termlist R_PAREN
-;
+//procedure_call: LITERAL L_SQ_BRA termlist R_SQ_BRA L_PAREN termlist R_PAREN
+//;
 
 term: LITERAL
     | NUMBER
-    | pure_function_call
-    | pure_procedure_call
-    | procedure_call
+    | paren_termlist
+//    | pure_procedure_call
+//    | procedure_call
 ;
 
-termlist:  term
-      | termlist COMMA term;
+paren_termlist_start: L_PAREN { $$ = ast_list_new(); }
+;
+
+paren_termlist_progress: paren_termlist_start term { $$ = ast_list_append($1, $2); }
+                      |  paren_termlist_progress COMMA term { $$ = ast_list_append($1, $3); }
+;
+
+paren_termlist: paren_termlist_start R_PAREN { $$ = $1; }
+             |  paren_termlist_progress R_PAREN { $$ = $1; }
 ;
 
 %%

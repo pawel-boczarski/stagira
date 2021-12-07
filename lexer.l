@@ -1,13 +1,14 @@
 %{
 #include "parser.tab.h"
+#include "helpers.h"
 //char yylval[64];
 
 %}
 
 %%
 \r\n { }
-[a-zA-Z]+ { strcpy(yylval.s, yytext); return LITERAL;}
-[0-9]+ { yylval.i = atoi(yytext); return NUMBER; }
+[a-zA-Z]+ { yylval.a = ast_string_new(yytext); return LITERAL;}
+[0-9]+ { yylval.a = ast_int_new(atoi(yytext)); return NUMBER; }
 \[ { return L_SQ_BRA; }
 \] { return R_SQ_BRA; }
 \( { return L_PAREN; }
