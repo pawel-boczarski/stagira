@@ -7,14 +7,17 @@
 
 %%
 \r\n { }
-[a-zA-Z]+ { yylval.a = ast_string_new(yytext); return LITERAL;}
+[a-zA-Z]+ { yylval.a = ast_literal_new(yytext); return LITERAL;}
 [0-9]+ { yylval.a = ast_int_new(atoi(yytext)); return NUMBER; }
+\".+\" { yytext[strlen(yytext)-1]; yylval.a = ast_string_new(yytext+1); return STRING; }
 \[ { return L_SQ_BRA; }
 \] { return R_SQ_BRA; }
 \( { return L_PAREN; }
 \) { return R_PAREN; }
 \{ { return L_BRACE; }
 \} { return R_BRACE; }
+\< { return L_TR_BRA; }
+\> { return R_TR_BRA; }
 : { return COLON; }
 ; { return SEMICOLON; }
 , { return COMMA; }
