@@ -3,7 +3,7 @@
 #include "helpers.h"
 int yyerror(char *s);
 
-int universe[1024];
+void eval_queue(struct expression *e);
 %}
 
 %union {
@@ -42,10 +42,14 @@ int universe[1024];
 %type<a> tr_termlist_progress
 %type<a> tr_termlist
 
+%type<e> unrestricted_call
+%type<e> restricted_call
+%type<e> perfect_call
 
 %type<e> pure_function_call
 %type<e> pure_procedure_call
 %type<e> procedure_call
+
 
 %%
 
@@ -59,26 +63,31 @@ command: NUMBER SEMICOLON { ast_debug_print($1); }
     | paren_termlist SEMICOLON { ast_debug_print($1); }
     | sq_termlist SEMICOLON { ast_debug_print($1); }
     | tr_termlist SEMICOLON { ast_debug_print($1); }
-    | simple_call
+    | unrestricted_call SEMICOLON { eval_queue($1); }
+    | restricted_call SEMICOLON { eval_queue($1); }
+    | perfect_call SEMICOLON { eval_queue($1); }
 ;
 
-
-simple_call: pure_function_call SEMICOLON { expression_print($1); }
-    | pure_procedure_call SEMICOLON { expression_print($1); }
-    | procedure_call SEMICOLON { expression_print($1); }
+perfect_call: LITERAL STRING restricted_call { $$ = $3;/* $$->act_mode = $1->value.list[0]->value.str;*/ $$->goal = $2->value.str; }
 ;
 
-// pure... call => unrestricted_call (one token type)
-// then restricted_call with restrictions
-// and sensible_expression with both actualization_mode and goal
-
-pure_function_call: LITERAL paren_termlist { ast_debug_print($2); $$ = expression_new(NULL, NULL, NULL, NULL, $1, NULL, $2, NULL); }
+restricted_call: paren_termlist unrestricted_call { $$ = $2; $$->species = $1; }
+               | sq_termlist unrestricted_call { $$ = $2; $$->matter = $1; }
+               | sq_termlist paren_termlist unrestricted_call { $$ = $3; $$->matter = $1; $$->species = $2; }
 ;
 
-pure_procedure_call: LITERAL sq_termlist { ast_debug_print($2); $$ = expression_new(NULL, NULL, NULL, NULL, $1, $2, NULL, NULL); }
+unrestricted_call: pure_function_call
+                | pure_procedure_call
+                | procedure_call
 ;
 
-procedure_call: LITERAL sq_termlist paren_termlist { ast_debug_print($2); $$ = expression_new(NULL, NULL, NULL, NULL, $1, $2, $3, NULL); }
+pure_function_call: LITERAL paren_termlist { $$ = expression_new(NULL, NULL, NULL, NULL, $1, NULL, $2, NULL); }
+;
+
+pure_procedure_call: LITERAL sq_termlist { $$ = expression_new(NULL, NULL, NULL, NULL, $1, $2, NULL, NULL); }
+;
+
+procedure_call: LITERAL sq_termlist paren_termlist { $$ = expression_new(NULL, NULL, NULL, NULL, $1, $2, $3, NULL); }
 ;
 
 term: LITERAL
