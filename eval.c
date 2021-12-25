@@ -2,7 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "helpers.h"
+
+#include "ast.h"
+#include "binding_context.h"
+#include "expression.h"
 
 struct world {
 	int memory[4096];
@@ -10,6 +13,12 @@ struct world {
 	struct expression **stored_exp;
 	int stored_exp_size;	
 } env;
+
+int require_out_access(struct expression *e, struct binding_context *bc) {
+	printf("require_out_access: always admit for now...\n");
+	for(int i = 0; i < 10; i++) env.memory[i] = i*i; // test DO REMOVE THIS SHOULD NOT BE HERE
+	return 1;
+}
 
 void eval_now(struct expression *e, struct binding_context *bc);
 
@@ -31,6 +40,22 @@ void eval_queue(struct expression *e) {
 
 void eval_now(struct expression *e, struct binding_context *bc) {
 	printf("!!! Evaluation machine should be here.\n");
+	if(ast_type(e->form) == ast_literal) {
+		if(strcmp(e->form->value.str, "print") == 0)
+			eval_print(e, bc);
+	}
+}
+
+void eval_print(struct expression *e, struct binding_context *bc) {
+	// need to check if "out" is accessible
+	if(require_out_access(e, bc)) {
+		if(ast_list_length(e->accidental_species) > 0) {
+			int as1 = e->accidental_species->value.list[0]->value.str;
+			printf("> %d\n", as1);
+		} else {
+			fprintf(stderr, "Error: no accidental to print!\n");
+		}
+	}
 }
 
 #if 0

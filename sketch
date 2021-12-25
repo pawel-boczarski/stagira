@@ -45,49 +45,72 @@ set[out](max[stack](10,20)) => 20
 [out]: print(10)
 (3)[1]: set[1](3)
 
-<now> "increment the value if other is less" (10,5)[5]: cond(less(value(5), value(10)), set[5](add[stack](get[stack](5),1)))
+<now> "increment the value if other is less": (10,5)[5]: cond(less(value(5), value(10)), set[5](add[stack](get[stack](5),1)))
 <each 3sec> "monitor value of cell 0" (0)[out]: print(3)
 
-<now> { preset } [0]: set[0](10);
-<now> { preset } [1]: set[1](5);
-<now> { preset } [2]: set[2](4);
-<now> { preset } [3]: set[3](20);
+<now> "preset" [0] set[0](10);
+<now> { preset } [1] set[1](5);
+<now> { preset } [2] set[2](4);
+<now> { preset } [3] set[3](20);
 
-<call-from bubble-sort> {perform single bubble step} (x,y,4)[x,y,4] :
+<call-from,bubble-sort> {"perform single bubble step"} (x,y,4)[x,y,4] :
       cond(less(val(y),val(x)),
            seq(get[4](x), get[x](y), get(y)[4]))
 "singleBubble";
 
-<call> {to sort a table of elements} (0,1,2,3)[0,1,2,3] :
-     seq( singleBubble[(0,1)], singleBubble[(1,2)], singleBubble[(2,3)],
-          singleBubble[(0,1)], singleBubble[(1,2)], singleBubble[(2,3)],
-          singleBubble[(0,1)], singleBubble[(1,2)], singleBubble[(2,3)],
+(0:3)
+[0:3,out]
+
+func 
+ "to sort a table of elements"
+   (0,1,2,3)
+   [0,1,2,3]
+     seq( singleBubble[0,1](0,1), singleBubble[1,2](1,2), singleBubble[2,3](1,2),
+          singleBubble[0,1](1,2), singleBubble[1,2](1,2), singleBubble[2,3](2,3),
+          singleBubble[0,1](1,2), singleBubble[1,2](1,2), singleBubble[2,3](2,3),
          )
-"bubble-sort";
+: "bubble-sort";
 
 singleBubble[0,1](-,-)
 
-<now> {for printing a sorted table} (0,1,2,3)[0,1,2,3] bubble-sort[]();
-<now> [out] print(0)
-<now> [out] print(1)
-<now> [out] print(2)
-<now> [out] print(3)
+<now> {for printing a sorted table} (0,1,2,3)[0,1,2,3]: bubble-sort[]();
+<now> : [out] print(0);
+<now> : [out] print(1);
+<now> : [out] print(2);
+<now> : [out] print(3);
 
-repeat(5)<<x>>
+<now> {check setting works} [0](1) set[0](1);
+<now> {check access list blocks} []() set[0](1);
 
--------------------
-EFFICIENT: call
-FINAL: "for fun"
-SPECIES:
-	x,y
-MATTER:
-	out
-FORM:
-	seq(print(val(x), print(val(y)))
-NAME: printTwoVals
-;
+<call> {print a value} [out](v) set[out](v) "print";
+<now> {AMDG} [out] print(5);
 
-EFFICIENT: now
-FINAL: "check"
-FORM: printTwoVals(10, 20);
+<now> {AMDG} [out?](5!) cond(leq(get(5),10), print(5))
 
+now <AMDG> [out] print(5);
+
+callable <AMDG> [out](5) print(5) myprint;
+
+<call> >AMDG< [out](5) print(5) "myprint";
+
+now <AMDG> [out](5) myprint;
+
+callable <AMDG>
+	[out]
+	(c)
+	cond(leq(c,0), print(get(c)), print(-1))
+"restricted_print";
+
+now <AMDG>: [out](5) restricted_print(5);
+
+restricted_print(5);    => this should trigger many runtime warnings / errors:
+
+=> "Unspecified time: defaulting to now" + stack trace
+=> "Unspecified restriction: defaulting to [*]() + stack trace
+
+
+==========================================================
+
+first program that should be made working
+
+now "print value of 10" [out](10) print(10);

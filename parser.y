@@ -1,6 +1,9 @@
 %{
 #include <stdio.h>
-#include "helpers.h"
+#include "ast.h"
+#include "expression.h"
+#include "binding_context.h"
+
 int yyerror(char *s);
 
 void eval_queue(struct expression *e);
@@ -45,6 +48,7 @@ void eval_queue(struct expression *e);
 %type<e> unrestricted_call
 %type<e> restricted_call
 %type<e> perfect_call
+%type<e> named_perfect_call
 
 %type<e> pure_function_call
 %type<e> pure_procedure_call
@@ -66,9 +70,13 @@ command: NUMBER SEMICOLON { ast_debug_print($1); }
     | unrestricted_call SEMICOLON { eval_queue($1); }
     | restricted_call SEMICOLON { eval_queue($1); }
     | perfect_call SEMICOLON { eval_queue($1); }
+    | named_perfect_call SEMICOLON { eval_queue($1); }
 ;
 
-perfect_call: LITERAL STRING restricted_call { $$ = $3;/* $$->act_mode = $1->value.list[0]->value.str;*/ $$->goal = $2->value.str; }
+named_perfect_call: perfect_call COLON STRING { $$ = $1; $$->name = $3->value.str; } 
+;
+
+perfect_call: LITERAL STRING restricted_call { printf("pc!\n"); $$ = $3; $$->act_mode = $1->value.str; $$->goal = $2->value.str; }
 ;
 
 restricted_call: paren_termlist unrestricted_call { $$ = $2; $$->species = $1; }
