@@ -1,0 +1,5 @@
+now "Test output" [out] print(10);
+
+now "Test output when denied" [1] print(10);
+
+

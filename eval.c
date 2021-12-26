@@ -6,6 +6,7 @@
 #include "ast.h"
 #include "binding_context.h"
 #include "expression.h"
+#include "eval.h"
 
 struct world {
 	int memory[4096];
@@ -14,21 +15,35 @@ struct world {
 	int stored_exp_size;	
 } env;
 
-int require_out_access(struct expression *e, struct binding_context *bc) {
-	printf("require_out_access: always admit for now...\n");
-	for(int i = 0; i < 10; i++) env.memory[i] = i*i; // test DO REMOVE THIS SHOULD NOT BE HERE
+int require_out_access(struct binding_context *bc) {
+	printf("require_out_access...\n");
+	int len = ast_list_length(bc->e->matter);
+	for(int i = 0; i < len; i++) {
+		if(bc->e->matter->value.list[i]->type == ast_literal) {
+			if(strcmp(bc->e->matter->value.list[i]->value.str, "out") == 0) {
+				printf("Access OK!\n");
+				return 1;
+			}
+		}
+	}
+	printf("Out access denied!\n");
+	return 0;
+}
+
+int require_in_access(struct binding_context *bc) {
+	printf("require_in_access: always admit for now...\n");
 	return 1;
 }
 
-void eval_now(struct expression *e, struct binding_context *bc);
 
 void eval_queue(struct expression *e) {
 	printf("Queueing...\n");
 	expression_print(e);
 // 1. check if executable now
 	if(e->act_mode && strcmp(e->act_mode, "now") == 0) {
-	        printf("Evaluating this expression should take place now.\n");
-		eval_now(e, &(env.bc_main));
+	    printf("Evaluating this expression should take place now.\n");
+		env.bc_main.e = e;
+		return eval_now(&(env.bc_main));
 	} else if(e->name) {
 	        printf("This expression will be stored.\n");
 		env.stored_exp = realloc(env.stored_exp, ++env.stored_exp_size * sizeof(*env.stored_exp));
@@ -38,24 +53,33 @@ void eval_queue(struct expression *e) {
 	}
 }
 
-void eval_now(struct expression *e, struct binding_context *bc) {
+struct ast* eval_now(struct binding_context *bc) {
 	printf("!!! Evaluation machine should be here.\n");
-	if(ast_type(e->form) == ast_literal) {
-		if(strcmp(e->form->value.str, "print") == 0)
-			eval_print(e, bc);
+	if(ast_type(bc->e->form) == ast_literal) {
+		if(strcmp(bc->e->form->value.str, "print") == 0) {
+			return eval_print(bc);
+		}
+		else if(strcmp(bc->e->form->value.str, "get") == 0) {
+			return eval_get(bc);
+		} else if(strcmp(bc->e->form->value.str, "set") == 0) {
+			return eval_get(bc);
+		}
 	}
 }
 
-void eval_print(struct expression *e, struct binding_context *bc) {
+struct ast* eval_print(struct binding_context *bc) {
 	// need to check if "out" is accessible
-	if(require_out_access(e, bc)) {
-		if(ast_list_length(e->accidental_species) > 0) {
-			int as1 = e->accidental_species->value.list[0]->value.str;
+	if(require_out_access(bc)) {
+		if(ast_list_length(bc->e->accidental_species) > 0) {
+			// --> get_accidental_species_no(e, i) ?
+			// --> get_accidental_species_at(e, i) ?
+			int as1 = bc->e->accidental_species->value.list[0]->value.str;
 			printf("> %d\n", as1);
 		} else {
 			fprintf(stderr, "Error: no accidental to print!\n");
 		}
 	}
+	return NULL;
 }
 
 #if 0

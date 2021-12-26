@@ -48,7 +48,7 @@ void ast_delete(struct ast *a) {
 void ast_debug_print_level(struct ast *a, int depth) {
 	for(int i = 0; i < depth; i++) printf(" ");
         if(!a) {
-        	printf("(empty list)\n");
+        	printf("(empty result)\n");
         	return;
         }
         
