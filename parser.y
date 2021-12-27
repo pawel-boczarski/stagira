@@ -67,8 +67,8 @@ command: NUMBER SEMICOLON { ast_debug_print($1); }
     | paren_termlist SEMICOLON { ast_debug_print($1); }
     | sq_termlist SEMICOLON { ast_debug_print($1); }
     | tr_termlist SEMICOLON { ast_debug_print($1); }
-    | unrestricted_call SEMICOLON { /*eval_queue($1);*/ printf("Unrestricted call - skipping..."); }
-    | restricted_call SEMICOLON { /*eval_queue($1);*/ printf("Imperfect call - skipping..."); }
+    | unrestricted_call SEMICOLON { /*eval_queue($1); printf("Unrestricted call - skipping...");*/ }
+    | restricted_call SEMICOLON { /*eval_queue($1); printf("Imperfect call - skipping...");*/ }
     | perfect_call SEMICOLON { eval_queue($1->value.e); }
     | named_perfect_call SEMICOLON { eval_queue($1->value.e); }
 ;

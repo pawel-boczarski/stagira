@@ -18,15 +18,15 @@ struct world {
 } env;
 
 struct ast* eval_queue(struct expression *e) {
-//	printf("Queueing.s..\n");
-	expression_print(e);
+//	printf("Queueing...\n");
+//	expression_print(e);
 // 1. check if executable now
 	if(e->act_mode && strcmp(e->act_mode, "now") == 0) {
-	    printf("Evaluating this expression should take place now.\n");
+//	    printf("Evaluating this expression should take place now.\n");
 		env.bc_main.e = e;
 		return eval_now(&(env.bc_main));
 	} else if(e->name) {
-	        printf("This expression will be stored.\n");
+//	        printf("This expression will be stored.\n");
 		env.stored_exp = realloc(env.stored_exp, ++env.stored_exp_size * sizeof(*env.stored_exp));
 		env.stored_exp[env.stored_exp_size-1] = e;		
 	} else {
@@ -35,7 +35,7 @@ struct ast* eval_queue(struct expression *e) {
 }
 
 struct ast* eval_now(struct binding_context *bc) {
-	printf("!!! Evaluation machine should be here.\n");
+//	printf("!!! Evaluation machine should be here.\n");
 	if(ast_type(bc->e->form) == ast_literal) {
 		if(strcmp(bc->e->form->value.str, "print") == 0) {
 			return eval_print(bc);
@@ -49,9 +49,11 @@ struct ast* eval_now(struct binding_context *bc) {
 			for(int i = 0; i < env.stored_exp_size; i++) {
 				if(strcmp(bc->e->form->value.str, env.stored_exp[i]->name) == 0) {
 					printf("Go with stored expression...\n");
-					env.bc_main.e = env.stored_exp[i];
+//					env.bc_main.e = env.stored_exp[i];
+					struct binding_context *bc = binding_context_new(&env.bc_main, env.stored_exp[i]);
 					// bindings now ?
-					return eval_now(&(env.bc_main));
+					struct ast *retval = eval_now(bc);
+					return free(bc), retval;
 				}
 			}
 		}
@@ -65,7 +67,7 @@ struct ast* eval_print(struct binding_context *bc) {
 			// --> get_accidental_species_no(e, i) ?
 			// --> get_accidental_species_at(e, i) ?
 			int as1 = bc->e->accidental_species->value.list[0]->value.num;
-			printf("> %d\n", as1);
+			printf("%d\n", as1);
 		} else {
 			fprintf(stderr, "Error: no accidental to print!\n");
 		}

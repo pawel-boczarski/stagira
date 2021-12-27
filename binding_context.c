@@ -14,6 +14,24 @@ struct binding_context *binding_context_new(struct binding_context *parent, stru
     bc->e = e;
 	return bc;
 }
+/*
+struct binding_context {
+	struct binding_context *parent;
+    struct expression *e;
+	struct binding_table {
+		char *name;
+		struct ast *binding; // way waste of space...
+	} *bindings;
+	int bindings_size;
+};*/
+
+void binding_context_delete(struct binding_context *bc) {
+	for(int i = 0; i < bc->bindings_size; i++) {
+		free(bc->bindings[i].name);
+		//ast_delete()
+	}
+	free(bc);
+}
 
 struct ast *binding_context_get_binding(struct binding_context *bc, char *name, int check_parents) {
 	if(!bc) {
