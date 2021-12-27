@@ -1,7 +1,7 @@
 #ifndef __EVAL_H
 #define __EVAL_H
 
-void eval_queue(struct expression *e);
+struct ast* eval_queue(struct expression *e);
 
 struct ast* eval_now(struct binding_context *bc);
 

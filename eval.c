@@ -36,7 +36,7 @@ int require_in_access(struct binding_context *bc) {
 }
 
 
-void eval_queue(struct expression *e) {
+struct ast* eval_queue(struct expression *e) {
 	printf("Queueing...\n");
 	expression_print(e);
 // 1. check if executable now
@@ -62,7 +62,7 @@ struct ast* eval_now(struct binding_context *bc) {
 		else if(strcmp(bc->e->form->value.str, "get") == 0) {
 			return eval_get(bc);
 		} else if(strcmp(bc->e->form->value.str, "set") == 0) {
-			return eval_get(bc);
+			return eval_set(bc);
 		}
 	}
 }
@@ -73,12 +73,20 @@ struct ast* eval_print(struct binding_context *bc) {
 		if(ast_list_length(bc->e->accidental_species) > 0) {
 			// --> get_accidental_species_no(e, i) ?
 			// --> get_accidental_species_at(e, i) ?
-			int as1 = bc->e->accidental_species->value.list[0]->value.str;
+			int as1 = bc->e->accidental_species->value.list[0]->value.num;
 			printf("> %d\n", as1);
 		} else {
 			fprintf(stderr, "Error: no accidental to print!\n");
 		}
 	}
+	return NULL;
+}
+
+struct ast *eval_get(struct binding_context *bc) {
+	return NULL;
+}
+
+struct ast* eval_set(struct binding_context *bc) {
 	return NULL;
 }
 

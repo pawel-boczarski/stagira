@@ -4,6 +4,7 @@
 #include <assert.h>
 
 #include "ast.h"
+#include "expression.h"
 
 struct ast *ast_int_new(int i) {
     struct ast *r = calloc(1, sizeof(*r)); r->type = ast_number, r->value.num = i;
@@ -30,6 +31,11 @@ struct ast *ast_list_append(struct ast *a, struct ast *b) {
 	assert(a->type >= 0);
 	a->value.list = realloc(a->value.list, sizeof(*a->value.list) * ++a->type), a->value.list[a->type-1] = b;
 	return a;
+}
+
+struct ast *ast_expression_new(struct expression *e) {
+    struct ast *r = calloc(1, sizeof(*r)); r->type = ast_expression, r->value.e = e;
+    return r;
 }
 
 int ast_type(struct ast *a) {

@@ -45,14 +45,14 @@ void eval_queue(struct expression *e);
 %type<a> tr_termlist_progress
 %type<a> tr_termlist
 
-%type<e> unrestricted_call
-%type<e> restricted_call
-%type<e> perfect_call
-%type<e> named_perfect_call
+%type<a> unrestricted_call
+%type<a> restricted_call
+%type<a> perfect_call
+%type<a> named_perfect_call
 
-%type<e> pure_function_call
-%type<e> pure_procedure_call
-%type<e> procedure_call
+%type<a> pure_function_call
+%type<a> pure_procedure_call
+%type<a> procedure_call
 
 
 %%
@@ -67,21 +67,21 @@ command: NUMBER SEMICOLON { ast_debug_print($1); }
     | paren_termlist SEMICOLON { ast_debug_print($1); }
     | sq_termlist SEMICOLON { ast_debug_print($1); }
     | tr_termlist SEMICOLON { ast_debug_print($1); }
-    | unrestricted_call SEMICOLON { eval_queue($1); }
-    | restricted_call SEMICOLON { eval_queue($1); }
-    | perfect_call SEMICOLON { eval_queue($1); }
-    | named_perfect_call SEMICOLON { eval_queue($1); }
+    | unrestricted_call SEMICOLON { /*eval_queue($1);*/ printf("Unrestricted call - skipping..."); }
+    | restricted_call SEMICOLON { /*eval_queue($1);*/ printf("Imperfect call - skipping..."); }
+    | perfect_call SEMICOLON { eval_queue($1->value.e); }
+    | named_perfect_call SEMICOLON { eval_queue($1->value.e); }
 ;
 
-named_perfect_call: perfect_call COLON STRING { $$ = $1; $$->name = $3->value.str; } 
+named_perfect_call: perfect_call COLON STRING { $$ = $1; $$->value.e->name = $3->value.str; } 
 ;
 
-perfect_call: LITERAL STRING restricted_call { printf("pc!\n"); $$ = $3; $$->act_mode = $1->value.str; $$->goal = $2->value.str; }
+perfect_call: LITERAL STRING restricted_call { $$ = $3; $$->value.e->act_mode = $1->value.str; $$->value.e->goal = $2->value.str; }
 ;
 
-restricted_call: paren_termlist unrestricted_call { $$ = $2; $$->species = $1; }
-               | sq_termlist unrestricted_call { $$ = $2; $$->matter = $1; }
-               | sq_termlist paren_termlist unrestricted_call { $$ = $3; $$->matter = $1; $$->species = $2; }
+restricted_call: paren_termlist unrestricted_call { $$ = $2; $$->value.e->species = $1; }
+               | sq_termlist unrestricted_call { $$ = $2; $$->value.e->matter = $1; }
+               | sq_termlist paren_termlist unrestricted_call { $$ = $3; $$->value.e->matter = $1; $$->value.e->species = $2; }
 ;
 
 unrestricted_call: pure_function_call
@@ -89,19 +89,23 @@ unrestricted_call: pure_function_call
                 | procedure_call
 ;
 
-pure_function_call: LITERAL paren_termlist { $$ = expression_new(NULL, NULL, NULL, NULL, $1, NULL, $2, NULL); }
+pure_function_call: LITERAL paren_termlist { struct expression *e = accidental_expression_new($1, NULL, $2);
+                                             $$ = ast_expression_new(e); }
 ;
 
-pure_procedure_call: LITERAL sq_termlist { $$ = expression_new(NULL, NULL, NULL, NULL, $1, $2, NULL, NULL); }
+pure_procedure_call: LITERAL sq_termlist { struct expression *e = accidental_expression_new($1, $2, NULL);
+                                            $$ = ast_expression_new(e); }
 ;
 
-procedure_call: LITERAL sq_termlist paren_termlist { $$ = expression_new(NULL, NULL, NULL, NULL, $1, $2, $3, NULL); }
+procedure_call: LITERAL sq_termlist paren_termlist { struct expression *e = accidental_expression_new($1, $2, $3);
+                                                     $$ = ast_expression_new(e); }
 ;
 
 term: LITERAL
     | STRING
     | NUMBER
     | paren_termlist
+    | unrestricted_call
 ;
 
 paren_termlist_start: L_PAREN { $$ = ast_list_new(); }

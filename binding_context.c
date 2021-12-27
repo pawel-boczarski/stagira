@@ -7,11 +7,6 @@
 #include "binding_context.h"
 
 
-////////////
-
-
-//////////////////
-
 struct binding_context *binding_context_new(struct binding_context *parent, struct expression *e) {
 	struct binding_context *bc;
 	bc = calloc(1, sizeof(*bc));

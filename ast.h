@@ -1,9 +1,12 @@
 #ifndef __AST_H
 #define __AST_H
 
+#include "expression.h"
+
 #define ast_list_length ast_type
 
 enum {
+   ast_expression = -4,
    ast_number = -3,
    ast_string = -2,
    ast_literal = -1,
@@ -15,6 +18,7 @@ struct ast {
    union {
       int num;
       char *str;
+      struct expression *e;
       struct ast **list;
    } value;
 };
@@ -25,6 +29,8 @@ struct ast *ast_literal_new(char *s);
 
 struct ast *ast_list_new();
 struct ast *ast_list_append(struct ast *a, struct ast *b);
+
+struct ast *ast_expression_new(struct expression *e);
 
 void ast_delete(struct ast *a);
 int ast_type(struct ast *a); /* if >= 0, this is a list, otherwise, ast_number or ast_string */

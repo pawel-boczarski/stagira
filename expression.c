@@ -4,6 +4,29 @@
 #include "ast.h"
 #include "expression.h"
 
+
+struct expression* accidental_expression_new(
+                                 struct ast *form,
+                                 struct ast *accidental_matter, struct ast *accidental_species) {
+	struct expression *ret = calloc(1,sizeof(*ret));
+	ret->form = form;
+	ret->accidental_matter = accidental_matter;
+	ret->accidental_species = accidental_species;
+	return ret;
+}
+
+void accidental_expression_print(struct expression *e) {
+	printf("FORM:\n");
+	ast_debug_print_level(e->form, 1);
+	printf("ACCIDENTAL MATTER:\n");
+	ast_debug_print_level(e->accidental_matter, 1);
+	printf("ACCIDENTAL SPECIES:\n");
+	ast_debug_print_level(e->accidental_species, 1);
+	
+	printf("NAME: '%s'\n", e->name);
+}
+
+
 struct expression* expression_new(char *act_mode, char *goal,
                                  struct ast *matter, struct ast *species, struct ast *form,
                                  struct ast *accidental_matter, struct ast *accidental_species, char *name) {
@@ -19,7 +42,7 @@ struct expression* expression_new(char *act_mode, char *goal,
 	return ret;
 }
 
-struct expression expression_print(struct expression *e) {
+void expression_print(struct expression *e) {
 	printf("EFFICIENT CAUSE: '%s'\n", e->act_mode);
 	printf("FINAL CAUSE: '%s'\n", e->act_mode);
 	printf("MATTER:\n");
