@@ -1,0 +1,4 @@
+now "check simple set" [1] set[1](1997);
+now "check simple output with set" [out] set[out](1997);
+now "check simple output with get" [out] get[out](1);
+now "check simple output with get" [out](1) get[out](1);

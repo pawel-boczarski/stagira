@@ -45,10 +45,10 @@ struct ast* eval_now(struct binding_context *bc) {
 		} else if(strcmp(bc->e->form->value.str, "set") == 0) {
 			return eval_set(bc);
 		} else {
-			printf("Searching for stored ones...\n");
+//			printf("Searching for stored ones...\n");
 			for(int i = 0; i < env.stored_exp_size; i++) {
 				if(strcmp(bc->e->form->value.str, env.stored_exp[i]->name) == 0) {
-					printf("Go with stored expression...\n");
+//					printf("Go with stored expression...\n");
 //					env.bc_main.e = env.stored_exp[i];
 					struct binding_context *bc = binding_context_new(&env.bc_main, env.stored_exp[i]);
 					// bindings now ?
@@ -92,9 +92,10 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 
 	if(bc->e->accidental_species->value.list[0]->type == ast_number) {
 		int read_dest = bc->e->accidental_species->value.list[0]->value.num;
-		if(!require_mem_read_access(bc, read_dest)) {
-			printf("get: denied read access\n");
-			binding_context_print(bc, 1);
+		if(!direct && !require_mem_read_access(bc, read_dest)) {
+			//printf("get: denied read access\n");
+			//binding_context_print(bc, 1);
+			return NULL;
 		}
 
 		if(direct) {
@@ -110,8 +111,8 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 	if(bc->e->accidental_matter->value.list[0]->type == ast_number) {
 		int write_dest = bc->e->accidental_matter->value.list[0]->value.num;
 		if(!require_mem_write_access(bc, write_dest)) {
-			printf("get: denied write access\n");
-			binding_context_print(bc, 1);
+			//printf("get: denied write access\n");
+			//binding_context_print(bc, 1);
 			return NULL;
 		}
 		env.memory[write_dest] = result->value.num;

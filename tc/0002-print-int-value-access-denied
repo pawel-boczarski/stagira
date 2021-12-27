@@ -1,0 +1,1 @@
+now "print 5 for check" [1] print(5);
