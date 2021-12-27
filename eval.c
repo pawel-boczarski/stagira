@@ -30,6 +30,18 @@ int require_out_access(struct binding_context *bc) {
 	return 0;
 }
 
+int require_mem_write_access(struct binding_context *bc, int from, int to) {
+	printf("require mem write access...\n");
+	printf("For now, always pass...\n");
+	return 1;
+}
+
+int require_mem_read_access(struct binding_context *bc, int from, int to) {
+	printf("require mem read access...\n");
+	printf("For now, always pass...\n");
+	return 1;
+}
+
 int require_in_access(struct binding_context *bc) {
 	printf("require_in_access: always admit for now...\n");
 	return 1;
@@ -82,12 +94,68 @@ struct ast* eval_print(struct binding_context *bc) {
 	return NULL;
 }
 
-struct ast *eval_get(struct binding_context *bc) {
+struct ast *_eval_get(struct binding_context *bc, int direct) {
+	// we need "where to" and "what"
+	struct ast *result = NULL;
+	if(ast_list_length(bc->e->accidental_matter) < 1) {
+		printf("get: no output destination");
+		binding_context_print(bc, 1);
+		return NULL;
+	}
+	if(ast_list_length(bc->e->accidental_species) < 1) {
+		printf("get: no input place");
+		binding_context_print(bc, 1);
+		return NULL;
+	}
+
+
+	if(bc->e->accidental_species->value.list[0]->type == ast_number) {
+		int read_dest = bc->e->accidental_species->value.list[0]->value.num;
+		if(!require_mem_read_access(bc, read_dest, read_dest)) {
+			printf("get: denied read access\n");
+			binding_context_print(bc, 1);
+		}
+
+		if(direct) {
+			result = ast_int_new(bc->e->accidental_species->value.list[0]->value.num);
+		} else {
+			result = ast_int_new(env.memory[bc->e->accidental_species->value.list[0]->value.num]);
+		}
+	} else {
+		printf("Don't know how to serve other argument than num for get.");
+		return NULL;
+	}
+
+	if(bc->e->accidental_matter->value.list[0]->type == ast_number) {
+		int write_dest = bc->e->accidental_matter->value.list[0]->value.num;
+		if(!require_mem_write_access(bc, write_dest, write_dest)) {
+			printf("get: denied write access\n");
+			binding_context_print(bc, 1);
+			return NULL;
+		}
+		env.memory[write_dest] = result->value.num;
+		ast_delete(result);
+		return NULL;
+	} else if(bc->e->accidental_matter->value.list[0]->type == ast_literal) {
+		if(strcmp(bc->e->accidental_matter->value.list[0]->value.str, "out") == 0) {
+			ast_debug_print(result);
+			ast_delete(result);
+			return NULL;
+		} else if(strcmp(bc->e->accidental_matter->value.list[0]->value.str, "bind") == 0) {
+			return result;
+		}
+		
+	}
+	
 	return NULL;
 }
 
+struct ast *eval_get(struct binding_context *bc) {
+	return _eval_get(bc, 0);
+}
+
 struct ast* eval_set(struct binding_context *bc) {
-	return NULL;
+	return _eval_get(bc, 1);
 }
 
 #if 0
@@ -96,9 +164,9 @@ void eval_set(struct ast *e) {
    // create "matter1" as first
    // create "form1" as second
    // go internal
-   if(e->matter[0]->type == ast_int) {
+   if(e->matter[0]->type == ast_number) {
    }
-   if(e->species[0]->type == ast_int) {
+   if(e->species[0]->type == ast_number) {
    } else {
    	assert(0 && "Not implemented.");
    }
