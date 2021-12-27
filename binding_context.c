@@ -52,11 +52,13 @@ void _binding_context_print(struct binding_context *bc, int print_parents, int l
 	if(!bc) {
 		for(int j = 0; j < level; j++) putchar(' '); printf("No bindings.");
 		return;
-	}
+	}	
 	for(int j = 0; j < level; j++) putchar(' '); printf("Bindings: %d\n", bc->bindings_size);
 	for(int i = 0; i < bc->bindings_size; i++) {
 		for(int j = 0; j < level+1; j++) putchar(' '); printf("NAME: %s\n", bc->bindings[i].name);
 		ast_debug_print_level(bc->bindings[i].binding, 1+level);
+		printf("Expression: ");
+		expression_print(bc->e);
 	}
 	if(print_parents) {
 		_binding_context_print(bc->parent, print_parents, level+1);

@@ -6,50 +6,19 @@
 #include "ast.h"
 #include "binding_context.h"
 #include "expression.h"
+#include "restrict.h"
 #include "eval.h"
 
 struct world {
 	int memory[4096];
 	struct binding_context bc_main;
 	struct expression **stored_exp;
-	int stored_exp_size;	
+	int stored_exp_size;
+	int debug_on;	
 } env;
 
-int require_out_access(struct binding_context *bc) {
-	printf("require_out_access...\n");
-	int len = ast_list_length(bc->e->matter);
-	for(int i = 0; i < len; i++) {
-		if(bc->e->matter->value.list[i]->type == ast_literal) {
-			if(strcmp(bc->e->matter->value.list[i]->value.str, "out") == 0) {
-				printf("Access OK!\n");
-				return 1;
-			}
-		}
-	}
-	printf("Out access denied!\n");
-	return 0;
-}
-
-int require_mem_write_access(struct binding_context *bc, int from, int to) {
-	printf("require mem write access...\n");
-	printf("For now, always pass...\n");
-	return 1;
-}
-
-int require_mem_read_access(struct binding_context *bc, int from, int to) {
-	printf("require mem read access...\n");
-	printf("For now, always pass...\n");
-	return 1;
-}
-
-int require_in_access(struct binding_context *bc) {
-	printf("require_in_access: always admit for now...\n");
-	return 1;
-}
-
-
 struct ast* eval_queue(struct expression *e) {
-	printf("Queueing...\n");
+//	printf("Queueing.s..\n");
 	expression_print(e);
 // 1. check if executable now
 	if(e->act_mode && strcmp(e->act_mode, "now") == 0) {
@@ -75,6 +44,16 @@ struct ast* eval_now(struct binding_context *bc) {
 			return eval_get(bc);
 		} else if(strcmp(bc->e->form->value.str, "set") == 0) {
 			return eval_set(bc);
+		} else {
+			printf("Searching for stored ones...\n");
+			for(int i = 0; i < env.stored_exp_size; i++) {
+				if(strcmp(bc->e->form->value.str, env.stored_exp[i]->name) == 0) {
+					printf("Go with stored expression...\n");
+					env.bc_main.e = env.stored_exp[i];
+					// bindings now ?
+					return eval_now(&(env.bc_main));
+				}
+			}
 		}
 	}
 }
@@ -98,12 +77,12 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 	// we need "where to" and "what"
 	struct ast *result = NULL;
 	if(ast_list_length(bc->e->accidental_matter) < 1) {
-		printf("get: no output destination");
+		printf("get: no output destination\n");
 		binding_context_print(bc, 1);
 		return NULL;
 	}
 	if(ast_list_length(bc->e->accidental_species) < 1) {
-		printf("get: no input place");
+		printf("get: no input place\n");
 		binding_context_print(bc, 1);
 		return NULL;
 	}
@@ -111,7 +90,7 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 
 	if(bc->e->accidental_species->value.list[0]->type == ast_number) {
 		int read_dest = bc->e->accidental_species->value.list[0]->value.num;
-		if(!require_mem_read_access(bc, read_dest, read_dest)) {
+		if(!require_mem_read_access(bc, read_dest)) {
 			printf("get: denied read access\n");
 			binding_context_print(bc, 1);
 		}
@@ -122,13 +101,13 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 			result = ast_int_new(env.memory[bc->e->accidental_species->value.list[0]->value.num]);
 		}
 	} else {
-		printf("Don't know how to serve other argument than num for get.");
+		printf("Don't know how to serve other argument than num for get.\n");
 		return NULL;
 	}
 
 	if(bc->e->accidental_matter->value.list[0]->type == ast_number) {
 		int write_dest = bc->e->accidental_matter->value.list[0]->value.num;
-		if(!require_mem_write_access(bc, write_dest, write_dest)) {
+		if(!require_mem_write_access(bc, write_dest)) {
 			printf("get: denied write access\n");
 			binding_context_print(bc, 1);
 			return NULL;
@@ -157,44 +136,3 @@ struct ast *eval_get(struct binding_context *bc) {
 struct ast* eval_set(struct binding_context *bc) {
 	return _eval_get(bc, 1);
 }
-
-#if 0
-void eval_set(struct ast *e) {
-   // create binding context
-   // create "matter1" as first
-   // create "form1" as second
-   // go internal
-   if(e->matter[0]->type == ast_number) {
-   }
-   if(e->species[0]->type == ast_number) {
-   } else {
-   	assert(0 && "Not implemented.");
-   }
-   
-   printf("Skipping the check...");
-   memory[e->matter[0]->num] = e->form[0]->num;
-}
-
-int eval_get(struct ast *e) {
-	
-}
-
-int eval_set(struct ast *e) {
-}
-
-int eval_get_internal(struct ast *e, struct binding_context *bc) {
-	
-}
-
-int eval_set_internal(struct ast *e, struct binding_context *bc) {
-// get binding of
-
-}
-
-
-int eval_cond(struct ast *e) {
-}
-
-int eval_loop() {
-}
-#endif

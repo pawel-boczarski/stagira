@@ -39,7 +39,7 @@ struct ast *ast_expression_new(struct expression *e) {
 }
 
 int ast_type(struct ast *a) {
-	return a->type;
+	return a ? a->type : -127;
 }
 
 void ast_delete(struct ast *a) {

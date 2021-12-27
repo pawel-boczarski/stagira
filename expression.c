@@ -44,7 +44,7 @@ struct expression* expression_new(char *act_mode, char *goal,
 
 void expression_print(struct expression *e) {
 	printf("EFFICIENT CAUSE: '%s'\n", e->act_mode);
-	printf("FINAL CAUSE: '%s'\n", e->act_mode);
+	printf("FINAL CAUSE: '%s'\n", e->goal);
 	printf("MATTER:\n");
 	ast_debug_print_level(e->matter, 1);
 	printf("SPECIES:\n");

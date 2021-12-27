@@ -7,7 +7,7 @@
 
 %%
 [ \t\r\n] { }
-[a-zA-Z]+ { yylval.a = ast_literal_new(yytext); return LITERAL;}
+[a-zA-Z_]+ { yylval.a = ast_literal_new(yytext); return LITERAL;}
 [0-9]+ { yylval.a = ast_int_new(atoi(yytext)); return NUMBER; }
 \".+\" { yytext[strlen(yytext)-1] = '\0'; yylval.a = ast_string_new(yytext+1); return STRING; }
 \[ { return L_SQ_BRA; }
