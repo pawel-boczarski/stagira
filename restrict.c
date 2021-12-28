@@ -18,6 +18,7 @@ int require_out_access(struct binding_context *bc) {
 			}
 		}
 	}
+    if(bc->parent) return require_out_access(bc->parent);
 	printf("Out access denied!\n");
 	return 0;
 }
@@ -31,6 +32,7 @@ int require_in_access(struct binding_context *bc) {
 			}
 		}
 	}
+    if(bc->parent) return require_in_access(bc->parent);
 	printf("In access denied!\n");
 	return 0;
 }
@@ -46,6 +48,7 @@ int require_mem_write_access(struct binding_context *bc, int place) {
 			}
 		}
 	}
+    if(bc->parent) return require_mem_write_access(bc->parent, place);
 	printf("Write access denied!\n");
 	return 0;
 }
@@ -60,6 +63,7 @@ int require_mem_read_access(struct binding_context *bc, int place) {
 			}
 		}
 	}
+    if(bc->parent) return require_mem_read_access(bc->parent, place);
 	printf("Read access denied!\n");
 	return 0;
 }

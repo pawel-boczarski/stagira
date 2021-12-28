@@ -9,6 +9,7 @@ struct ast* eval_print(struct binding_context *bc);
 struct ast* eval_get(struct binding_context *bc);
 struct ast* eval_set(struct binding_context *bc);
 
+struct ast* eval_seq(struct binding_context *bc);
 struct ast* eval_cond(struct binding_context *bc);
 struct ast* eval_loop(struct binding_context *bc);
 

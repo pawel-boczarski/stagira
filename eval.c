@@ -44,6 +44,8 @@ struct ast* eval_now(struct binding_context *bc) {
 			return eval_get(bc);
 		} else if(strcmp(bc->e->form->value.str, "set") == 0) {
 			return eval_set(bc);
+		} else if(strcmp(bc->e->form->value.str, "seq") == 0) {
+			return eval_seq(bc);
 		} else {
 //			printf("Searching for stored ones...\n");
 			for(int i = 0; i < env.stored_exp_size; i++) {
@@ -138,4 +140,22 @@ struct ast *eval_get(struct binding_context *bc) {
 
 struct ast* eval_set(struct binding_context *bc) {
 	return _eval_get(bc, 1);
+}
+
+struct ast *eval_seq(struct binding_context *bc) {
+	int am_no = ast_list_length(bc->e->accidental_species);
+	struct ast *retval = NULL; /* warning - if "bind" used, we should bind - we will try binding here first */
+	for(int i = 0; i < am_no; i++) {
+		if(bc->e->accidental_species->value.list[i]->type != ast_expression) {
+			printf("seq: this is not an expression!\n");
+			ast_debug_print(bc->e->accidental_species->value.list[i]);
+			return NULL;
+		}
+		struct binding_context *bc_child = binding_context_new(bc, bc->e->accidental_species->value.list[i]->value.e);
+		// bindings now ?
+		struct ast *r = eval_now(bc_child);
+		if(r) retval = r;
+		binding_context_delete(bc_child);
+	}
+	return retval;
 }

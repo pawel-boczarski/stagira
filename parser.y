@@ -73,6 +73,7 @@ command: NUMBER SEMICOLON { ast_debug_print($1); }
     | named_perfect_call SEMICOLON { eval_queue($1->value.e); }
 ;
 
+
 named_perfect_call: perfect_call COLON STRING { $$ = $1; $$->value.e->name = $3->value.str; } 
 ;
 
