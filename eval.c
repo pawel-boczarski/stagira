@@ -48,8 +48,9 @@ struct ast* eval_now(struct binding_context *bc) {
 			return eval_seq(bc);
 		} else if(strcmp(bc->e->form->value.str, "if") == 0) {
 			return eval_if(bc);
-		}
-		else {
+		} else if(strcmp(bc->e->form->value.str, "op") == 0) {
+			return eval_op(bc);
+		} else {
 //			printf("Searching for stored ones...\n");
 			for(int i = 0; i < env.stored_exp_size; i++) {
 				if(strcmp(bc->e->form->value.str, env.stored_exp[i]->name) == 0) {
@@ -63,6 +64,14 @@ struct ast* eval_now(struct binding_context *bc) {
 			}
 		}
 	}
+}
+
+struct ast *_eval_in_child_context (struct binding_context *bc, struct expression *e) {
+	struct binding_context *bc_child = binding_context_new(bc, e);
+	// bindings now ?
+	struct ast *retval = eval_now(bc_child);
+	binding_context_delete(bc_child);
+	return retval;
 }
 
 struct ast* eval_print(struct binding_context *bc) {
@@ -133,11 +142,10 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 		result = ast_int_new(env.memory[read_dest]);
 	}
 
+	// this code to be stored
 	if(bc->e->accidental_matter->value.list[0]->type == ast_number) {
 		int write_dest = bc->e->accidental_matter->value.list[0]->value.num;
 		if(!require_mem_write_access(bc, write_dest)) {
-			//printf("get: denied write access\n");
-			//binding_context_print(bc, 1);
 			return NULL;
 		}
 		env.memory[write_dest] = result->value.num;
@@ -149,11 +157,8 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 			ast_delete(result);
 			return NULL;
 		} else if(strcmp(bc->e->accidental_matter->value.list[0]->value.str, "bind") == 0) {
-//			printf("BINDING: \n");
-//			ast_debug_print(result);
 			return result;
 		}
-		
 	}
 	
 	return NULL;
@@ -167,6 +172,81 @@ struct ast* eval_set(struct binding_context *bc) {
 	return _eval_get(bc, 1);
 }
 
+struct ast *eval_op(struct binding_context *bc) {
+	int as_no = ast_list_length(bc->e->accidental_species);
+	int am_no = ast_list_length(bc->e->accidental_matter);
+	struct ast *retval = NULL, *result = NULL;
+	if(as_no < 3) {
+		printf("op: at least three read parameters necessary");
+		return NULL;
+	}
+	if(am_no < 1) {
+		printf("op: at least one write parameter necessary");
+	}
+
+	struct ast *as = bc->e->accidental_species;
+	struct ast *am = bc->e->accidental_matter;
+	int arg[2];
+	char *opname;
+//	int result = 0;
+
+	for(int i = 0; i < 2; i++) {
+		if(as->value.list[2*i]->type == ast_expression) {
+			struct ast *ret = _eval_in_child_context(bc, as->value.list[2*i]->value.e);
+			if(ret->type != ast_number) {
+			printf("eval_op: argument %d not a number", i+1);
+			return NULL;
+		}
+		arg[i] = ret->value.num;
+		} else if(as->value.list[2*i]->type == ast_number) {
+			arg[i] = as->value.list[2*i]->value.num;
+		} else {
+			printf("eval_op: argument %d not a number", i+1);
+			return NULL;
+		}
+	}
+
+	if(as->value.list[1]->type != ast_string) {
+		printf("eval_op: operator not a string");
+		return NULL;
+	}
+	opname = as->value.list[1]->value.str;
+
+	if(strcmp(opname, "<") == 0) result = ast_int_new(!!(arg[0] < arg[1]));
+	else if(strcmp(opname, "<=") == 0) result = ast_int_new(!!(arg[0] <= arg[1]));
+	else if(strcmp(opname, ">") == 0) result = ast_int_new(!!(arg[0] > arg[1]));
+	else if(strcmp(opname, ">=") == 0) result = ast_int_new(!!(arg[0] >= arg[1]));
+	else if(strcmp(opname, "=") == 0) result = ast_int_new(!!(arg[0] == arg[1]));
+	else if(strcmp(opname, "~=") == 0) result = ast_int_new(!!(arg[0] != arg[1]));
+	else if(strcmp(opname, "+") == 0) result = ast_int_new(arg[0] + arg[1]);
+	else if(strcmp(opname, "-") == 0) result = ast_int_new(arg[0] - arg[1]);
+	else if(strcmp(opname, "*") == 0) result = ast_int_new(arg[0] * arg[1]);
+	else if(strcmp(opname, "/") == 0) result = ast_int_new(arg[0] / arg[1]);
+	else if(strcmp(opname, "%%") == 0) result = ast_int_new(arg[0] % arg[1]);
+
+	// this code to be stored
+	if(bc->e->accidental_matter->value.list[0]->type == ast_number) {
+		int write_dest = bc->e->accidental_matter->value.list[0]->value.num;
+		if(!require_mem_write_access(bc, write_dest)) {
+			ast_delete(result);
+			return NULL;
+		}
+		env.memory[write_dest] = result->value.num;
+		ast_delete(result);
+		return NULL;
+	} else if(bc->e->accidental_matter->value.list[0]->type == ast_literal) {
+		if(strcmp(bc->e->accidental_matter->value.list[0]->value.str, "out") == 0) {
+			ast_debug_print(result);
+			ast_delete(result);
+			return NULL;
+		} else if(strcmp(bc->e->accidental_matter->value.list[0]->value.str, "bind") == 0) {
+			return result;
+		}
+	}
+	
+	return retval;
+}
+
 struct ast *eval_seq(struct binding_context *bc) {
 	int am_no = ast_list_length(bc->e->accidental_species);
 	struct ast *retval = NULL; /* warning - if "bind" used, we should bind - we will try binding here first */
@@ -176,11 +256,8 @@ struct ast *eval_seq(struct binding_context *bc) {
 			ast_debug_print(bc->e->accidental_species->value.list[i]);
 			return NULL;
 		}
-		struct binding_context *bc_child = binding_context_new(bc, bc->e->accidental_species->value.list[i]->value.e);
-		// bindings now ?
-		struct ast *r = eval_now(bc_child);
-		if(r) retval = r;
-		binding_context_delete(bc_child);
+		struct ast *r = _eval_in_child_context(bc, bc->e->accidental_species->value.list[i]->value.e);
+		if(r) retval = r; /* last result matches */
 	}
 	return retval;
 }
@@ -193,7 +270,7 @@ int _is_simple_condition_true(struct ast *cond) {
 	}
 
 	printf("Assuming unrecognized condition false...");
-	return NULL;
+	return 0;
 }
 
 struct ast *eval_if(struct binding_context *bc) {
@@ -205,10 +282,7 @@ struct ast *eval_if(struct binding_context *bc) {
 	struct ast *ifcond = NULL;
 	struct ast *retval = NULL; /* warning - if "bind" used, we should bind - we will try binding in seq first */
 	if(bc->e->accidental_species->value.list[0]->type == ast_expression) {
-		struct binding_context *bc_child = binding_context_new(bc, bc->e->accidental_species->value.list[0]->value.e);
-		// bindings now ?
-		ifcond = eval_now(bc_child);
-		binding_context_delete(bc_child);
+		ifcond = _eval_in_child_context(bc, bc->e->accidental_species->value.list[0]->value.e);
 	} else if(bc->e->accidental_species->value.list[0]->type == ast_number) {
 		ifcond = bc->e->accidental_species->value.list[0];
 	} else {
@@ -219,10 +293,7 @@ struct ast *eval_if(struct binding_context *bc) {
 		return NULL;
 
 	if(bc->e->accidental_species->value.list[1]->type == ast_expression) {
-		struct binding_context *bc_child = binding_context_new(bc, bc->e->accidental_species->value.list[1]->value.e);
-		// bindings now ?
-		retval = eval_now(bc_child);
-		binding_context_delete(bc_child);
+		retval = _eval_in_child_context(bc, bc->e->accidental_species->value.list[1]->value.e);
 	} else {
 		return bc->e->accidental_species->value.list[1];
 	}
