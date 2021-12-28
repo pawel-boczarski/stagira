@@ -1,11 +1,11 @@
 now "check if simple equality check works"
     [out,bind]
     if(op[bind](10, "<", 20),
-         print("10 less than 20"),
+         print("10 less than 20")
     );
 
 now "check if simple equality check works"
     [out,bind]
     if(op[bind](20, "<", 10),
-         print("20 less than 10"),
+         print("20 less than 10")
     );
