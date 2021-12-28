@@ -46,7 +46,10 @@ struct ast* eval_now(struct binding_context *bc) {
 			return eval_set(bc);
 		} else if(strcmp(bc->e->form->value.str, "seq") == 0) {
 			return eval_seq(bc);
-		} else {
+		} else if(strcmp(bc->e->form->value.str, "if") == 0) {
+			return eval_if(bc);
+		}
+		else {
 //			printf("Searching for stored ones...\n");
 			for(int i = 0; i < env.stored_exp_size; i++) {
 				if(strcmp(bc->e->form->value.str, env.stored_exp[i]->name) == 0) {
@@ -68,8 +71,16 @@ struct ast* eval_print(struct binding_context *bc) {
 		if(ast_list_length(bc->e->accidental_species) > 0) {
 			// --> get_accidental_species_no(e, i) ?
 			// --> get_accidental_species_at(e, i) ?
-			int as1 = bc->e->accidental_species->value.list[0]->value.num;
-			printf("%d\n", as1);
+			for(int i = 0; i < ast_list_length(bc->e->accidental_species); i++) {
+				if(bc->e->accidental_species->value.list[i]->type == ast_number) {
+					int as1 = bc->e->accidental_species->value.list[i]->value.num;
+					printf("%d\n", bc->e->accidental_species->value.list[i]->value.num);
+				} else if(bc->e->accidental_species->value.list[i]->type == ast_string) {
+					printf("%s\n", bc->e->accidental_species->value.list[i]->value.str);
+				} else {
+					printf("print: don't know how to print this accidental\n");
+				}
+			}
 		} else {
 			fprintf(stderr, "Error: no accidental to print!\n");
 		}
@@ -91,23 +102,35 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 		return NULL;
 	}
 
-
+	int read_dest; // todo this could be something else...
 	if(bc->e->accidental_species->value.list[0]->type == ast_number) {
-		int read_dest = bc->e->accidental_species->value.list[0]->value.num;
-		if(!direct && !require_mem_read_access(bc, read_dest)) {
-			//printf("get: denied read access\n");
-			//binding_context_print(bc, 1);
+		read_dest = bc->e->accidental_species->value.list[0]->value.num;
+	} else if(bc->e->accidental_species->value.list[0]->type == ast_expression) {
+		struct binding_context *bc_child = binding_context_new(bc, bc->e->accidental_species->value.list[0]->value.e);
+		// bindings now ?
+		struct ast *return_value = eval_now(bc_child);
+		if(return_value->type != ast_number) {
+			printf("get: can't serve other input destination than number for get\n");
 			return NULL;
 		}
-
-		if(direct) {
-			result = ast_int_new(bc->e->accidental_species->value.list[0]->value.num);
-		} else {
-			result = ast_int_new(env.memory[bc->e->accidental_species->value.list[0]->value.num]);
-		}
+//		printf("RETURN VALUE:\n");
+//		ast_debug_print(return_value);
+		read_dest = return_value->value.num;
+		binding_context_delete(bc_child);
 	} else {
 		printf("Don't know how to serve other argument than num for get.\n");
 		return NULL;
+	}
+	if(!direct && !require_mem_read_access(bc, read_dest)) {
+		//printf("get: denied read access\n");
+			//binding_context_print(bc, 1);
+	return NULL;
+	}
+
+	if(direct) {
+		result = ast_int_new(read_dest);
+	} else {
+		result = ast_int_new(env.memory[read_dest]);
 	}
 
 	if(bc->e->accidental_matter->value.list[0]->type == ast_number) {
@@ -126,6 +149,8 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 			ast_delete(result);
 			return NULL;
 		} else if(strcmp(bc->e->accidental_matter->value.list[0]->value.str, "bind") == 0) {
+//			printf("BINDING: \n");
+//			ast_debug_print(result);
 			return result;
 		}
 		
@@ -157,5 +182,50 @@ struct ast *eval_seq(struct binding_context *bc) {
 		if(r) retval = r;
 		binding_context_delete(bc_child);
 	}
+	return retval;
+}
+
+int _is_simple_condition_true(struct ast *cond) {
+	if(cond->type == ast_number) {
+		return cond->value.num == 1;
+	} else if(cond->type == ast_string) {
+		return cond->value.str && strlen(cond->value.str) > 0;
+	}
+
+	printf("Assuming unrecognized condition false...");
+	return NULL;
+}
+
+struct ast *eval_if(struct binding_context *bc) {
+	int am_no = ast_list_length(bc->e->accidental_species);
+	if(am_no != 2) {
+		printf("if: should have exactly two accidental arguments");
+		return NULL;
+	}
+	struct ast *ifcond = NULL;
+	struct ast *retval = NULL; /* warning - if "bind" used, we should bind - we will try binding in seq first */
+	if(bc->e->accidental_species->value.list[0]->type == ast_expression) {
+		struct binding_context *bc_child = binding_context_new(bc, bc->e->accidental_species->value.list[0]->value.e);
+		// bindings now ?
+		ifcond = eval_now(bc_child);
+		binding_context_delete(bc_child);
+	} else if(bc->e->accidental_species->value.list[0]->type == ast_number) {
+		ifcond = bc->e->accidental_species->value.list[0];
+	} else {
+		return NULL;
+	}
+
+	if(!_is_simple_condition_true(ifcond))
+		return NULL;
+
+	if(bc->e->accidental_species->value.list[1]->type == ast_expression) {
+		struct binding_context *bc_child = binding_context_new(bc, bc->e->accidental_species->value.list[1]->value.e);
+		// bindings now ?
+		retval = eval_now(bc_child);
+		binding_context_delete(bc_child);
+	} else {
+		return bc->e->accidental_species->value.list[1];
+	}
+
 	return retval;
 }

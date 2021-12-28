@@ -1,0 +1,7 @@
+now "to check simple recursion in get setup"
+[1]
+set[1](1997);
+
+now "check simple recursion in get"
+[out](1)
+set[out](get[bind](1));

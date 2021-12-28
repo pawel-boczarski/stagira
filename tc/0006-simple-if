@@ -1,0 +1,5 @@
+now "check simple if when false"
+[out] if(0, print("This should not appear"));
+
+now "check simple if when true"
+[out] if(1, print("This should appear"));
