@@ -1,0 +1,4 @@
+func "create function printing 1997" [out] print(1997)
+ : "printSomeNumber";
+
+now "call this function" [out] printSomeNumber();

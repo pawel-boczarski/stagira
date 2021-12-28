@@ -1,0 +1,5 @@
+now "check execution of more statements"
+[out]
+seq(
+    print(1), print(2), print(3), print(4)
+);
