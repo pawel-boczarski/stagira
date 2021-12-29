@@ -33,6 +33,7 @@ struct ast* eval_queue(struct expression *e) {
 		printf("Not knowing how to act, skipping...\n");
 	}
 }
+struct ast *_eval_in_child_context (struct binding_context *bc, struct expression *e);
 
 struct ast* eval_now(struct binding_context *bc) {
 //	printf("!!! Evaluation machine should be here.\n");
@@ -48,18 +49,22 @@ struct ast* eval_now(struct binding_context *bc) {
 			return eval_seq(bc);
 		} else if(strcmp(bc->e->form->value.str, "if") == 0) {
 			return eval_if(bc);
+		} else if(strcmp(bc->e->form->value.str, "loop") == 0) {
+			return eval_loop(bc);
 		} else if(strcmp(bc->e->form->value.str, "op") == 0) {
 			return eval_op(bc);
 		} else {
 //			printf("Searching for stored ones...\n");
 			for(int i = 0; i < env.stored_exp_size; i++) {
+				// note this will run more functions if more are defined - do we support "universals" ? ;)
 				if(strcmp(bc->e->form->value.str, env.stored_exp[i]->name) == 0) {
 //					printf("Go with stored expression...\n");
 //					env.bc_main.e = env.stored_exp[i];
-					struct binding_context *bc = binding_context_new(&env.bc_main, env.stored_exp[i]);
+//					struct binding_context *bc = binding_context_new(&env.bc_main, env.stored_exp[i]);
 					// bindings now ?
-					struct ast *retval = eval_now(bc);
-					return free(bc), retval;
+//					struct ast *retval = eval_now(bc);
+//					return free(bc), retval;
+					_eval_in_child_context(&env.bc_main, env.stored_exp[i]);
 				}
 			}
 		}
@@ -67,8 +72,49 @@ struct ast* eval_now(struct binding_context *bc) {
 }
 
 struct ast *_eval_in_child_context (struct binding_context *bc, struct expression *e) {
-	struct binding_context *bc_child = binding_context_new(bc, e);
-	// bindings now ?
+	struct binding_context *bc_child = binding_context_new(bc, e); // todo check - is the expression copied?
+	
+	int mno = ast_list_length(e->matter);
+	int sno = ast_list_length(e->species);
+
+	int am_no = ast_list_length(bc->e->accidental_matter);
+	int s_no = ast_list_length(bc->e->accidental_species);
+
+	// todo what if something appears in both places - avoid this!
+	int am_to_bind = 0;
+	for(int i = 0; i < mno; i++) {
+//		printf("checking matter binding for: ");
+//		ast_debug_print(e->matter->value.list[i]);
+		if(e->matter->value.list[i]->type == ast_literal && !binding_context_is_bound(bc_child, e->matter->value.list[i]->value.str)) {
+			if(am_to_bind >= am_no) {
+				printf("_eval_in_child_context: could not bind '%s' write-out parameter for function '%s'",
+							e->matter->value.list[i]->value.str,
+							e->form->value.str);
+				binding_context_delete(bc_child);
+				return NULL;
+			}
+			binding_context_set_binding(bc_child, e->matter->value.list[i]->value.str, bc->e->accidental_matter->value.list[am_to_bind++]);
+	//		binding_context_print(bc_child,1);
+		}
+	}
+
+	int s_to_bind = 0;
+	for(int i = 0; i < sno; i++) {
+//		printf("checking species binding for: ");
+//		ast_debug_print(e->species->value.list[i]);
+		if(e->species->value.list[i]->type == ast_literal && !binding_context_is_bound(bc_child, e->species->value.list[i]->value.str)) {
+			if(s_to_bind >= s_no) {
+				printf("_eval_in_child_context: could not bind '%s' read-out parameter for function '%s'",
+							e->species->value.list[i]->value.str,
+							e->form->value.str);
+				binding_context_delete(bc_child);
+				return NULL;
+			}
+			binding_context_set_binding(bc_child, e->species->value.list[i]->value.str, bc->e->accidental_species->value.list[s_to_bind++]);
+	//		binding_context_print(bc_child,1);
+		}
+	}
+
 	struct ast *retval = eval_now(bc_child);
 	binding_context_delete(bc_child);
 	return retval;
@@ -114,6 +160,18 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 	int read_dest; // todo this could be something else...
 	if(bc->e->accidental_species->value.list[0]->type == ast_number) {
 		read_dest = bc->e->accidental_species->value.list[0]->value.num;
+	} else if(bc->e->accidental_species->value.list[0]->type == ast_literal) { /* this will need change for "in" */
+		struct ast *binding = binding_context_get_binding(bc->parent, bc->e->accidental_species->value.list[0]->value.str, 0);
+		if(!binding) {
+			printf("get: cannot get binding '%s'\n", bc->e->accidental_species->value.list[0]->value.str);
+			return NULL;
+		}
+		if(binding->type != ast_number) {
+			printf("get: cannot serve other type than number, and binding '%s' does not represent it\n",
+						bc->e->accidental_species->value.list[0]->value.str);
+			return NULL;
+		}
+		read_dest = binding->value.num;
 	} else if(bc->e->accidental_species->value.list[0]->type == ast_expression) {
 		struct binding_context *bc_child = binding_context_new(bc, bc->e->accidental_species->value.list[0]->value.e);
 		// bindings now ?
@@ -122,8 +180,6 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 			printf("get: can't serve other input destination than number for get\n");
 			return NULL;
 		}
-//		printf("RETURN VALUE:\n");
-//		ast_debug_print(return_value);
 		read_dest = return_value->value.num;
 		binding_context_delete(bc_child);
 	} else {
@@ -264,7 +320,7 @@ struct ast *eval_seq(struct binding_context *bc) {
 
 int _is_simple_condition_true(struct ast *cond) {
 	if(cond->type == ast_number) {
-		return cond->value.num == 1;
+		return cond->value.num != 0;
 	} else if(cond->type == ast_string) {
 		return cond->value.str && strlen(cond->value.str) > 0;
 	}
@@ -273,30 +329,43 @@ int _is_simple_condition_true(struct ast *cond) {
 	return 0;
 }
 
-struct ast *eval_if(struct binding_context *bc) {
+struct ast *_eval_loop_if(struct binding_context *bc, int loop) {
 	int am_no = ast_list_length(bc->e->accidental_species);
 	if(am_no != 2) {
-		printf("if: should have exactly two accidental arguments");
+		printf("if/loop: should have exactly two accidental arguments");
 		return NULL;
 	}
+
 	struct ast *ifcond = NULL;
 	struct ast *retval = NULL; /* warning - if "bind" used, we should bind - we will try binding in seq first */
+	do {
 	if(bc->e->accidental_species->value.list[0]->type == ast_expression) {
 		ifcond = _eval_in_child_context(bc, bc->e->accidental_species->value.list[0]->value.e);
 	} else if(bc->e->accidental_species->value.list[0]->type == ast_number) {
 		ifcond = bc->e->accidental_species->value.list[0];
 	} else {
+		printf("if/loop: don't know how to serve this kind of condition\n");
 		return NULL;
 	}
 
-	if(!_is_simple_condition_true(ifcond))
-		return NULL;
+	if(!_is_simple_condition_true(ifcond)) {
+		return retval;
+	}
 
 	if(bc->e->accidental_species->value.list[1]->type == ast_expression) {
 		retval = _eval_in_child_context(bc, bc->e->accidental_species->value.list[1]->value.e);
 	} else {
 		return bc->e->accidental_species->value.list[1];
 	}
+	} while(loop);
 
 	return retval;
+}
+
+struct ast *eval_if(struct binding_context *bc) {
+	return _eval_loop_if(bc, 0);
+}
+
+struct ast *eval_loop(struct binding_context *bc) {
+	return _eval_loop_if(bc, 1);
 }

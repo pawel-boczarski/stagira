@@ -66,6 +66,8 @@ void ast_debug_print_level(struct ast *a, int depth) {
 		for(int i = 0; i < a->type; i++) {
 			ast_debug_print_level(a->value.list[i], depth+1);
 		}
+	} else {
+		printf("Unknown type: %d\n", a->type);
 	}
 }
 

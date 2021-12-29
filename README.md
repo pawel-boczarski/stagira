@@ -1,10 +1,10 @@
-# Stagyra
+# Stagira
 
 ## Example code
 
-`now "to demonstrate the look and feel of Stagyra" [out] print("Hello, world!");`
+`now "to demonstrate the look and feel of Stagira" [out] print("Hello, world!");`
 
-## What is Stagyra ?
+## What is Stagira ?
 
 This is a simple programming language inspired by Aristotle's philosophy.
 
@@ -30,7 +30,7 @@ In other words - nothing in world is pointless, everything has a purpose and dir
 
 This is this is necessary to specify the goal of each call.
 
-## Unrestricted function call in Stagyra
+## Unrestricted function call in Stagira
 
 The functions are called in a similar way like in C-like languages,
 but mutable parameters (the "matter") are clearly separated from read-only ones
@@ -54,14 +54,14 @@ means: "put insides of cell number 1997 into cell number 0" , "copy cell 1997 to
 The mutable parameters are called "accidental matter",
 and the immutables are called "accidental species".
 
-## Restricted function calls in Stagyra
+## Restricted function calls in Stagira
 
 This is good, prior to calling each function, so that we know what can be read and what can be written by this function.
 This is why all commands have the "restriction part". So:
 
 `[out] print("Hello world!");`
 
-tells the Stagyra interpreter that this function will write to output,
+tells the Stagira interpreter that this function will write to output,
 
 `[1](0) get[1](0)`
 
@@ -75,9 +75,9 @@ These restrictions are called "matter" and "species" accordingly (the immediate 
 
 If a command tries to write or even read something that is not specified in its restriction, an error will be raised.
 
-## Perfect function calls in Stagyra
+## Perfect function calls in Stagira
 
-For a call to be interpreted by Stagyra, we need two more things: "actualization mode" (the "who" - immediate call, stored to be executed later...) and the "goal" (final cause) - which is an explanation (rather for programmer than the interpreter) why we execute this at all.
+For a call to be interpreted by Stagira, we need two more things: "actualization mode" (the "who" - immediate call, stored to be executed later...) and the "goal" (final cause) - which is an explanation (rather for programmer than the interpreter) why we execute this at all.
 
 For immediate statements, we use `now` as actualization mode.
 For stored functions, `func` is used.
@@ -86,17 +86,17 @@ After the actualization mode follows the goal - being just a text description (b
 
 So, 
 
-`now "to demonstrate the look and feel of Stagyra" [out] print("Hello, world!");`
+`now "to demonstrate the look and feel of Stagira" [out] print("Hello, world!");`
 
-means: I want to execute this now. If someone wraps his or her head around this code why, I am doing this for demonstration of Stagyra.
+means: I want to execute this now. If someone wraps his or her head around this code why, I am doing this for demonstration of Stagira.
 This call will change output (`[out]`) and does not read any data from the data memory.
 (no parentheses with "species" before the function name). The function will take one accidental parameter that is read - an immediate string.
 This will not take any accidental parameters that are written (no square parentheses after function name).
 
 Please note that not taking any ACCIDENTAL write-out parameters by `print` does not mean there is no "matter" for this function - actually
-`[out]` is a SUBSTANTIAL parameter for this function that would be hidden if Stagyra's syntax did not force us to state it clear. 
+`[out]` is a SUBSTANTIAL parameter for this function that would be hidden if Stagira's syntax did not force us to state it clear. 
 
-## Named perfect function calls in Stagyra
+## Named perfect function calls in Stagira
 
 We would not go any far without naming things - our descriptions would be too long and exhaustive.
 And, it's hard to imagine how we could call functions without names.
@@ -105,9 +105,7 @@ However, because we usually ask "what is this?" or coin a name after seeing the 
 So:
 
 
-`func "to demonstrate how stored functions are made in Stagyra" [out] print("Hello world!")`
-
-`              : "helloWorld";`
+`func "to demonstrate how stored functions are made in Stagira" [out] print("Hello world!") : "helloWorld";`
 
 
  means:
@@ -115,7 +113,7 @@ So:
  I want to define a stored function. The purpose is a demonstration how to made stored function calls for anyone who reads it.
  The matter of this function is output (it writes to output).
  As all the matter and all the read-only parameters (the "species") are specified, this function does not take any accidental matter and species
- (single empty parentheses may be necessary to call this due to Stagyra syntax...).
+ (single empty parentheses may be necessary to call this due to Stagira syntax...).
  This function will be called by the name `helloWorld`.
 
  To check how it works we can do simply:

@@ -48,6 +48,31 @@ struct ast *binding_context_get_binding(struct binding_context *bc, char *name, 
 	}
 }
 
+int binding_context_is_bound(struct binding_context *bc, char *name) {
+	//printf("checking '%s'...", name);
+	if(!bc) {
+		printf("Null binding context, return!");
+		return 0;
+	}
+
+	if(strcmp(name, "in") == 0 || strcmp(name, "out") == 0 || strcmp(name, "bind") == 0) {
+	//	printf("Bound.\n");
+		return 1;
+	}
+	
+	for(int i = 0; i < bc->bindings_size; i++) {
+		if(bc->bindings[i].name && strcmp(bc->bindings[i].name, name) == 0) { /*printf("Bound.\n");*/ return 1; }
+	}
+
+    //printf("Not bound!\n");
+	return 0;
+#if 0
+	if(check_parents && bc->parent) {
+		return binding_context_get_binding(bc->parent, name, check_parents);
+	}
+#endif
+}
+
 void binding_context_set_binding(struct binding_context *bc, char *name, struct ast *value) {
 	if(!bc) {
 		printf("Null binding context, return!\n");
@@ -73,7 +98,7 @@ void _binding_context_print(struct binding_context *bc, int print_parents, int l
 	}	
 	for(int j = 0; j < level; j++) putchar(' '); printf("Bindings: %d\n", bc->bindings_size);
 	for(int i = 0; i < bc->bindings_size; i++) {
-		for(int j = 0; j < level+1; j++) putchar(' '); printf("NAME: %s\n", bc->bindings[i].name);
+		for(int j = 0; j < level+1; j++) putchar(' ');printf("NAME: %s\n", bc->bindings[i].name);
 		ast_debug_print_level(bc->bindings[i].binding, 1+level);
 		printf("Expression: ");
 		expression_print(bc->e);

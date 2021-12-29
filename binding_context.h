@@ -17,4 +17,6 @@ struct ast *binding_context_get_binding(struct binding_context *bc, char *name, 
 void binding_context_set_binding(struct binding_context *bc, char *name, struct ast *value);
 void binding_context_print(struct binding_context *bc, int print_parents);
 
+int binding_context_is_bound(struct binding_context *bc, char *name);
+
 #endif

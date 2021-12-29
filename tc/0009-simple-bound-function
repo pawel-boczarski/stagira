@@ -1,0 +1,23 @@
+func "Print first n Fibonacci numbers"
+    [0,1,2,3,out]
+    (0,1,2,3,n)
+        seq(
+            set[0](0),
+            set[1](1),
+            set[3](n),
+            loop(
+                get[bind](3),
+                seq(
+                    get[out](0),
+                    op[2](get[bind](0), "+", get[bind](1)),
+                    get[0](1),
+                    get[1](2),
+                    op[3](get[bind](3), "-", 1)
+                )
+            )
+        )
+    : "fib";
+
+now "for user explanation" [out] print("This should print first 15 Fibonacci numbers");
+now "do what we promised"
+    [0,1,2,3,out](0,1,2,3) fib(15);

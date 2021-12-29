@@ -1,0 +1,18 @@
+now "Print first twelve Fibonacci numbers"
+    [0,1,2,3,out]
+    (0,1,2,3)
+        seq(
+            set[0](0),
+            set[1](1),
+            set[3](12),
+            loop(
+                get[bind](3),
+                seq(
+                    get[out](0),
+                    op[2](get[bind](0), "+", get[bind](1)),
+                    get[0](1),
+                    get[1](2),
+                    op[3](get[bind](3), "-", 1)
+                )
+            )
+        );

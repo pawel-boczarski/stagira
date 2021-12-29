@@ -1,0 +1,16 @@
+This should print first 15 Fibonacci numbers
+NUM: 0
+NUM: 1
+NUM: 1
+NUM: 2
+NUM: 3
+NUM: 5
+NUM: 8
+NUM: 13
+NUM: 21
+NUM: 34
+NUM: 55
+NUM: 89
+NUM: 144
+NUM: 233
+NUM: 377
