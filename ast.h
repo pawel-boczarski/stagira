@@ -6,8 +6,9 @@
 #define ast_list_length ast_type
 
 enum {
-   ast_expression = -4,
-   ast_number = -3,
+   ast_expression = -5,
+   ast_number = -4,
+   ast_range = -3,
    ast_string = -2,
    ast_literal = -1,
    ast_list_first = 0 /* all positive values are list lengths */
@@ -24,6 +25,9 @@ struct ast {
 };
 
 struct ast *ast_int_new(int i);
+struct ast *ast_range_new(struct ast *a, struct ast *b);
+struct ast *ast_range_begin(struct ast *a);
+struct ast *ast_range_end(struct ast *a);
 struct ast *ast_string_new(char *s);
 struct ast *ast_literal_new(char *s);
 

@@ -11,6 +11,25 @@ struct ast *ast_int_new(int i) {
     return r;
 }
 
+struct ast *ast_range_new(struct ast *a, struct ast *b) {
+	struct ast *r = ast_list_new();
+	ast_list_append(r, a);
+	ast_list_append(r, b);
+	r->type = ast_range;
+	return r;
+}
+
+struct ast *ast_range_begin(struct ast *a) {
+	assert(a->type == ast_range);
+	return a->value.list[0];
+}
+
+struct ast *ast_range_end(struct ast *a) {
+	assert(a->type == ast_range);
+	return a->value.list[1];
+}
+
+
 struct ast *ast_string_new(char *s) {
     struct ast *r = calloc(1, sizeof(*r)); r->type = ast_string, r->value.str = strdup(s);
     return r;
@@ -43,10 +62,15 @@ int ast_type(struct ast *a) {
 }
 
 void ast_delete(struct ast *a) {
+	if(!a) return;
 	int type = a->type;
-	if(type == ast_string) free(a->value.str);
+	if(type == ast_string || type == ast_literal) free(a->value.str);
+	if(type == ast_range) {
+		ast_delete(a->value.list[0]);
+		ast_delete(a->value.list[1]);
+	}
 	for(int i = 0; i < a->type; i++) { /* all non-list types are negative */
-	    free(a->value.list[i]);
+	    ast_delete(a->value.list[i]); // TODO ast_delete?
 	}
 	free(a);
 }
@@ -57,9 +81,14 @@ void ast_debug_print_level(struct ast *a, int depth) {
         	printf("(empty result)\n");
         	return;
         }
-        
+    
 	if(a->type == ast_string) printf("STR: '%s'\n", a->value.str);
-	if(a->type == ast_literal) printf("LITERAL: '%s'\n", a->value.str);
+	else if(a->type == ast_literal) printf("LITERAL: '%s'\n", a->value.str);
+	else if(a->type == ast_range) {
+		printf("RANGE:\n");
+			ast_debug_print_level(a->value.list[0], depth+1);
+			ast_debug_print_level(a->value.list[1], depth+1);
+	}
 	else if(a->type == ast_number) printf("NUM: %d\n", a->value.num);
 	else if(a->type >= ast_list_first) {
 		printf("LIST:\n");
@@ -67,6 +96,7 @@ void ast_debug_print_level(struct ast *a, int depth) {
 			ast_debug_print_level(a->value.list[i], depth+1);
 		}
 	} else {
+		// TODO: expressions don't go well!
 		printf("Unknown type: %d\n", a->type);
 	}
 }

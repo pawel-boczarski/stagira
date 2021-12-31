@@ -30,7 +30,10 @@ void eval_queue(struct expression *e);
 %token COLON
 %token SEMICOLON
 %token COMMA
+%token DOUBLE_PERIOD
 %token UNRECOGNIZED
+
+%type<a> range
 
 %type<a> term
 %type<a> paren_termlist_start
@@ -105,8 +108,15 @@ procedure_call: LITERAL sq_termlist paren_termlist { struct expression *e = acci
 term: LITERAL
     | STRING
     | NUMBER
+    | range
     | paren_termlist
     | unrestricted_call
+;
+
+range: NUMBER DOUBLE_PERIOD NUMBER { $$ = ast_range_new($1, $3); }
+ //      NUMBER DOUBLE_PERIOD LITERAL { $$ = ast_range_new($1, $3); }
+  //     LITERAL DOUBLE_PERIOD NUMBER { $$ = ast_range_new($1, $3); }
+ //      LITERAL DOUBLE_PERIOD LITERAL { $$ = ast_range_new($1, $3); }
 ;
 
 paren_termlist_start: L_PAREN { $$ = ast_list_new(); }

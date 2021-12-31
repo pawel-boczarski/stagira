@@ -21,6 +21,7 @@
 : { return COLON; }
 ; { return SEMICOLON; }
 , { return COMMA; }
+\.\. { return DOUBLE_PERIOD; }
 . { return UNRECOGNIZED; }
 
 %%

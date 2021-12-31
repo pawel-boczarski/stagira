@@ -17,6 +17,7 @@ do
 		failed=$[failed+1]
 	fi
 done
+rm ./tmp
 cd -
 echo -e "\e[33m $passed/$[passed+failed] tests passed.\e[0m"
 echo -e "\e[33m Success rate: $[passed*100/(passed+failed)]%\e[0m"

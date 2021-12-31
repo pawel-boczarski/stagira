@@ -1,0 +1,10 @@
+now "check if write access is properly denied"
+[0..1]
+(0..4)
+seq(set[0](100), set[1](200), get[out](0), get[out](1), set[2](300));
+
+now "check if read access is properly denied"
+[0..4]
+(0..2)
+seq(set[0](19), set[1](29), set[2](39), set[3](49),
+    get[out](0), get[out](1), get[out](2), get[out](3));
