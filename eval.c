@@ -54,16 +54,9 @@ struct ast* eval_now(struct binding_context *bc) {
 		} else if(strcmp(bc->e->form->value.str, "op") == 0) {
 			return eval_op(bc);
 		} else {
-//			printf("Searching for stored ones...\n");
 			for(int i = 0; i < env.stored_exp_size; i++) {
 				// note this will run more functions if more are defined - do we support "universals" ? ;)
 				if(strcmp(bc->e->form->value.str, env.stored_exp[i]->name) == 0) {
-//					printf("Go with stored expression...\n");
-//					env.bc_main.e = env.stored_exp[i];
-//					struct binding_context *bc = binding_context_new(&env.bc_main, env.stored_exp[i]);
-					// bindings now ?
-//					struct ast *retval = eval_now(bc);
-//					return free(bc), retval;
 					_eval_in_child_context(&env.bc_main, env.stored_exp[i]);
 				}
 			}
@@ -83,8 +76,6 @@ struct ast *_eval_in_child_context (struct binding_context *bc, struct expressio
 	// todo what if something appears in both places - avoid this!
 	int am_to_bind = 0;
 	for(int i = 0; i < mno; i++) {
-//		printf("checking matter binding for: ");
-//		ast_debug_print(e->matter->value.list[i]);
 		if(e->matter->value.list[i]->type == ast_literal && !binding_context_is_bound(bc_child, e->matter->value.list[i]->value.str)) {
 			if(am_to_bind >= am_no) {
 				printf("_eval_in_child_context: could not bind '%s' write-out parameter for function '%s'",
@@ -94,14 +85,11 @@ struct ast *_eval_in_child_context (struct binding_context *bc, struct expressio
 				return NULL;
 			}
 			binding_context_set_binding(bc_child, e->matter->value.list[i]->value.str, bc->e->accidental_matter->value.list[am_to_bind++]);
-	//		binding_context_print(bc_child,1);
 		}
 	}
 
 	int s_to_bind = 0;
 	for(int i = 0; i < sno; i++) {
-//		printf("checking species binding for: ");
-//		ast_debug_print(e->species->value.list[i]);
 		if(e->species->value.list[i]->type == ast_literal && !binding_context_is_bound(bc_child, e->species->value.list[i]->value.str)) {
 			if(s_to_bind >= s_no) {
 				printf("_eval_in_child_context: could not bind '%s' read-out parameter for function '%s'",
@@ -111,7 +99,6 @@ struct ast *_eval_in_child_context (struct binding_context *bc, struct expressio
 				return NULL;
 			}
 			binding_context_set_binding(bc_child, e->species->value.list[i]->value.str, bc->e->accidental_species->value.list[s_to_bind++]);
-	//		binding_context_print(bc_child,1);
 		}
 	}
 
@@ -161,17 +148,21 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 	if(bc->e->accidental_species->value.list[0]->type == ast_number) {
 		read_dest = bc->e->accidental_species->value.list[0]->value.num;
 	} else if(bc->e->accidental_species->value.list[0]->type == ast_literal) { /* this will need change for "in" */
-		struct ast *binding = binding_context_get_binding(bc->parent, bc->e->accidental_species->value.list[0]->value.str, 0);
-		if(!binding) {
-			printf("get: cannot get binding '%s'\n", bc->e->accidental_species->value.list[0]->value.str);
-			return NULL;
-		}
-		if(binding->type != ast_number) {
-			printf("get: cannot serve other type than number, and binding '%s' does not represent it\n",
+		if(strcmp(bc->e->accidental_species->value.list[0]->value.str, "in") == 0) {
+			scanf(stdin, "%d", &read_dest);
+		} else {
+			struct ast *binding = binding_context_get_binding(bc->parent, bc->e->accidental_species->value.list[0]->value.str, 0);
+			if(!binding) {
+				printf("get: cannot get binding '%s'\n", bc->e->accidental_species->value.list[0]->value.str);
+				return NULL;
+			}
+			if(binding->type != ast_number) {
+				printf("get: cannot serve other type than number, and binding '%s' does not represent it\n",
 						bc->e->accidental_species->value.list[0]->value.str);
 			return NULL;
+			}
+			read_dest = binding->value.num;
 		}
-		read_dest = binding->value.num;
 	} else if(bc->e->accidental_species->value.list[0]->type == ast_expression) {
 		struct binding_context *bc_child = binding_context_new(bc, bc->e->accidental_species->value.list[0]->value.e);
 		// bindings now ?
