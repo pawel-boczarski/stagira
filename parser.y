@@ -114,9 +114,9 @@ term: LITERAL
 ;
 
 range: NUMBER DOUBLE_PERIOD NUMBER { $$ = ast_range_new($1, $3); }
- //      NUMBER DOUBLE_PERIOD LITERAL { $$ = ast_range_new($1, $3); }
-  //     LITERAL DOUBLE_PERIOD NUMBER { $$ = ast_range_new($1, $3); }
- //      LITERAL DOUBLE_PERIOD LITERAL { $$ = ast_range_new($1, $3); }
+      | NUMBER DOUBLE_PERIOD LITERAL { $$ = ast_range_new($1, $3); }
+      | LITERAL DOUBLE_PERIOD NUMBER { $$ = ast_range_new($1, $3); }
+      | LITERAL DOUBLE_PERIOD LITERAL { $$ = ast_range_new($1, $3); }
 ;
 
 paren_termlist_start: L_PAREN { $$ = ast_list_new(); }

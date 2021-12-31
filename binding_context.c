@@ -10,20 +10,11 @@
 struct binding_context *binding_context_new(struct binding_context *parent, struct expression *e) {
 	struct binding_context *bc;
 	bc = calloc(1, sizeof(*bc));
+	assert(parent != bc->parent);
 	bc->parent = parent;
     bc->e = e;
 	return bc;
 }
-/*
-struct binding_context {
-	struct binding_context *parent;
-    struct expression *e;
-	struct binding_table {
-		char *name;
-		struct ast *binding; // way waste of space...
-	} *bindings;
-	int bindings_size;
-};*/
 
 void binding_context_delete(struct binding_context *bc) {
 	for(int i = 0; i < bc->bindings_size; i++) {
@@ -34,6 +25,7 @@ void binding_context_delete(struct binding_context *bc) {
 }
 
 struct ast *binding_context_get_binding(struct binding_context *bc, char *name, int check_parents) {
+//	printf("get bcsb ptr=%p, name=%s\n", bc, name);
 	if(!bc) {
 		printf("Null binding context, return!");
 		return NULL;
@@ -46,8 +38,12 @@ struct ast *binding_context_get_binding(struct binding_context *bc, char *name, 
 	if(check_parents && bc->parent) {
 		return binding_context_get_binding(bc->parent, name, check_parents);
 	}
+
+	printf("Got no binding.\n");
+	return NULL;
 }
 
+// todo shouldn't we check in parents?
 int binding_context_is_bound(struct binding_context *bc, char *name) {
 	//printf("checking '%s'...", name);
 	if(!bc) {
@@ -74,6 +70,9 @@ int binding_context_is_bound(struct binding_context *bc, char *name) {
 }
 
 void binding_context_set_binding(struct binding_context *bc, char *name, struct ast *value) {
+//	printf("set bcsb ptr=%p, name=%s\n", bc, name);
+//	printf("value:\n");
+//	ast_debug_print(value);
 	if(!bc) {
 		printf("Null binding context, return!\n");
 		return;
@@ -95,7 +94,9 @@ void _binding_context_print(struct binding_context *bc, int print_parents, int l
 	if(!bc) {
 		for(int j = 0; j < level; j++) putchar(' '); printf("No bindings.");
 		return;
-	}	
+	}
+	printf("Expression: ");
+	expression_print(bc->e);
 	for(int j = 0; j < level; j++) putchar(' '); printf("Bindings: %d\n", bc->bindings_size);
 	for(int i = 0; i < bc->bindings_size; i++) {
 		for(int j = 0; j < level+1; j++) putchar(' ');printf("NAME: %s\n", bc->bindings[i].name);

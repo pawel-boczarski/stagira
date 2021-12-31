@@ -1,0 +1,27 @@
+now "preset values to detect potential errors"
+[0..4]
+seq(
+    set[0](100),
+    set[1](200),
+    set[2](300),
+    set[3](400),
+    set[4](500)
+);
+
+func "print a range from zero"
+[out,10]
+(0..a,10)
+seq(
+    set[10](0),
+    loop(
+        op[bind](get[bind](10), "<=", set[bind](a)),
+        seq(
+            get[out](get[bind](10)),
+            op[10](get[bind](10), "+", 1)
+        )
+    )
+) : "printRangeLeft";
+
+now "print first four numbers" [out](0..3) printRangeLeft(3);
+now "horizontal line" [out] print("-------");
+now "print first five numbers" [out](0..4) printRangeLeft(4);

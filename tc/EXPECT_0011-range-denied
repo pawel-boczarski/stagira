@@ -1,0 +1,7 @@
+NUM: 100
+NUM: 200
+Write access denied at 2!
+NUM: 19
+NUM: 29
+NUM: 39
+Read access denied at 3!

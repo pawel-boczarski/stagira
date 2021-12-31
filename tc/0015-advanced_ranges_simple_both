@@ -1,0 +1,29 @@
+now "preset values to detect potential errors"
+[0..4]
+seq(
+    set[0](100),
+    set[1](200),
+    set[2](300),
+    set[3](400),
+    set[4](500)
+);
+
+func "print a range from zero"
+[out,10]
+(a..b,10)
+seq(
+    set[10](a),
+    loop(
+        op[bind](get[bind](10), "<=", set[bind](b)),
+        seq(
+            get[out](get[bind](10)),
+            op[10](get[bind](10), "+", 1)
+        )
+    )
+) : "printRange";
+
+now "print numbers 2,3,4" [out](2..4) printRange(2..4);
+now "horizontal line" [out] print("-------");
+now "print all numbers" [out](0..4) printRange(0..4);
+now "horizontal line" [out] print("-------");
+now "print second-to-last two numbers" [out](3..4) printRange(3..4);

@@ -64,6 +64,85 @@ struct ast* eval_now(struct binding_context *bc) {
 	}
 }
 
+int _create_bindings(struct binding_context *bc_child, struct ast *access_list, struct ast *accidental_access_list, struct expression *e) {
+	struct binding_context *bc = bc_child->parent; // todo check - is the expression copied?
+	
+	int al_no = ast_list_length(access_list);
+
+	int aal_no = ast_list_length(accidental_access_list);
+
+	// todo what if something appears in both places - avoid this!
+	int aal_to_bind = 0;
+	for(int i = 0; i < al_no; i++) {
+		if(access_list->value.list[i]->type == ast_literal && !binding_context_is_bound(bc_child, access_list->value.list[i]->value.str)) {
+			if(aal_to_bind >= aal_no) {
+				printf("_eval_in_child_context: could not bind '%s' parameter for function '%s'",
+							access_list->value.list[i]->value.str,
+							e->form->value.str);
+				binding_context_delete(bc_child);
+				return 0;
+			}
+			binding_context_set_binding(bc_child, access_list->value.list[i]->value.str, accidental_access_list->value.list[aal_to_bind++]);
+		} else if(access_list->value.list[i]->type == ast_range) {
+			struct ast *left = access_list->value.list[i]->value.list[0];
+			struct ast *right = access_list->value.list[i]->value.list[1];
+			int left_bound = (left->type == ast_number) || binding_context_is_bound(bc_child, left->value.str);
+			int right_bound = (right->type == ast_number) || binding_context_is_bound(bc_child, right->value.str);
+
+			if(!left_bound && !right_bound) {
+				// user should support whole range as an argument
+				if(right->type != ast_literal || left->type != ast_literal) {
+					printf("eval: do not know how to serve left & right range bind not being int or literal.\n");
+					return 0;
+				}
+
+				if(accidental_access_list->value.list[aal_to_bind]->type != ast_range) {
+					printf("eval: We don't do this way. When both range ends are unbound we support a..b range as parameter\n");
+					return NULL;
+				}
+
+				binding_context_set_binding(bc_child, left->value.str,
+					accidental_access_list->value.list[aal_to_bind]->value.list[0]);
+
+				binding_context_set_binding(bc_child, right->value.str,
+					accidental_access_list->value.list[aal_to_bind++]->value.list[1]);
+
+			} else if(left_bound && !right_bound) {
+				if(right->type == ast_literal) {
+					if(aal_to_bind >= aal_no) {
+						printf("_eval_in_child_context: could not bind '%s' write-out parameter for function '%s'",
+								access_list->value.list[i]->value.str,
+								e->form->value.str);
+						binding_context_delete(bc_child);
+						return 0;
+					}
+					binding_context_set_binding(bc_child, right->value.str, accidental_access_list->value.list[aal_to_bind++]);
+				} else {
+					printf("eval: do not know how to serve left range bind not being int or literal.\n");
+					return 0;
+				}
+			} else if(!left_bound && right_bound) {
+				if(left->type == ast_literal) {
+					if(aal_to_bind >= aal_no) {
+						printf("_eval_in_child_context: could not bind '%s' write-out parameter for function '%s'",
+								access_list->value.list[i]->value.str,
+								e->form->value.str);
+						binding_context_delete(bc_child);
+						return 0;
+					}
+					binding_context_set_binding(bc_child, left->value.str, accidental_access_list->value.list[aal_to_bind++]);
+				} else {
+					printf("eval: do not know how to serve right range bind not being int or literal.\n");
+					return 0;
+				}
+				//return 0;
+				
+			}
+		}
+	}
+	return 1;
+}
+
 struct ast *_eval_in_child_context (struct binding_context *bc, struct expression *e) {
 	struct binding_context *bc_child = binding_context_new(bc, e); // todo check - is the expression copied?
 	
@@ -75,31 +154,14 @@ struct ast *_eval_in_child_context (struct binding_context *bc, struct expressio
 
 	// todo what if something appears in both places - avoid this!
 	int am_to_bind = 0;
-	for(int i = 0; i < mno; i++) {
-		if(e->matter->value.list[i]->type == ast_literal && !binding_context_is_bound(bc_child, e->matter->value.list[i]->value.str)) {
-			if(am_to_bind >= am_no) {
-				printf("_eval_in_child_context: could not bind '%s' write-out parameter for function '%s'",
-							e->matter->value.list[i]->value.str,
-							e->form->value.str);
-				binding_context_delete(bc_child);
-				return NULL;
-			}
-			binding_context_set_binding(bc_child, e->matter->value.list[i]->value.str, bc->e->accidental_matter->value.list[am_to_bind++]);
-		}
+	if(!_create_bindings(bc_child, e->matter, bc->e->accidental_matter, e)) {
+		printf("_eval_in_child_context: could not bind write-out parameters");
+		return NULL;
 	}
 
-	int s_to_bind = 0;
-	for(int i = 0; i < sno; i++) {
-		if(e->species->value.list[i]->type == ast_literal && !binding_context_is_bound(bc_child, e->species->value.list[i]->value.str)) {
-			if(s_to_bind >= s_no) {
-				printf("_eval_in_child_context: could not bind '%s' read-out parameter for function '%s'",
-							e->species->value.list[i]->value.str,
-							e->form->value.str);
-				binding_context_delete(bc_child);
-				return NULL;
-			}
-			binding_context_set_binding(bc_child, e->species->value.list[i]->value.str, bc->e->accidental_species->value.list[s_to_bind++]);
-		}
+	if(!_create_bindings(bc_child, e->species, bc->e->accidental_species, e)) {
+		printf("_eval_in_child_context: could not bind read-in parameters");
+		return NULL;
 	}
 
 	struct ast *retval = eval_now(bc_child);
@@ -144,27 +206,31 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 		return NULL;
 	}
 
+	struct ast *am = bc->e->accidental_matter; // TODO refactor
+	struct ast *as = bc->e->accidental_species;
+
 	int read_dest; // todo this could be something else...
-	if(bc->e->accidental_species->value.list[0]->type == ast_number) {
-		read_dest = bc->e->accidental_species->value.list[0]->value.num;
-	} else if(bc->e->accidental_species->value.list[0]->type == ast_literal) { /* this will need change for "in" */
-		if(strcmp(bc->e->accidental_species->value.list[0]->value.str, "in") == 0) {
-			scanf(stdin, "%d", &read_dest);
+	if(as->value.list[0]->type == ast_number) {
+		read_dest = as->value.list[0]->value.num;
+	} else if(as->value.list[0]->type == ast_literal) { /* this will need change for "in" */
+		if(strcmp(as->value.list[0]->value.str, "in") == 0) {
+			scanf("%d", &read_dest);
 		} else {
-			struct ast *binding = binding_context_get_binding(bc->parent, bc->e->accidental_species->value.list[0]->value.str, 0);
+			struct ast *binding = binding_context_get_binding(bc->parent, as->value.list[0]->value.str, 1);
 			if(!binding) {
-				printf("get: cannot get binding '%s'\n", bc->e->accidental_species->value.list[0]->value.str);
+				printf("get: cannot get binding '%s'\n", as->value.list[0]->value.str);
 				return NULL;
 			}
 			if(binding->type != ast_number) {
 				printf("get: cannot serve other type than number, and binding '%s' does not represent it\n",
-						bc->e->accidental_species->value.list[0]->value.str);
+						as->value.list[0]->value.str);
 			return NULL;
 			}
 			read_dest = binding->value.num;
 		}
-	} else if(bc->e->accidental_species->value.list[0]->type == ast_expression) {
-		struct binding_context *bc_child = binding_context_new(bc, bc->e->accidental_species->value.list[0]->value.e);
+	} else if(as->value.list[0]->type == ast_expression) {
+		// todo change this
+		struct binding_context *bc_child = binding_context_new(bc, as->value.list[0]->value.e);
 		// bindings now ?
 		struct ast *return_value = eval_now(bc_child);
 		if(return_value->type != ast_number) {
@@ -190,20 +256,20 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 	}
 
 	// this code to be stored
-	if(bc->e->accidental_matter->value.list[0]->type == ast_number) {
-		int write_dest = bc->e->accidental_matter->value.list[0]->value.num;
+	if(am->value.list[0]->type == ast_number) {
+		int write_dest = am->value.list[0]->value.num;
 		if(!require_mem_write_access(bc, write_dest)) {
 			return NULL;
 		}
 		env.memory[write_dest] = result->value.num;
 		ast_delete(result);
 		return NULL;
-	} else if(bc->e->accidental_matter->value.list[0]->type == ast_literal) {
-		if(strcmp(bc->e->accidental_matter->value.list[0]->value.str, "out") == 0) {
+	} else if(am->value.list[0]->type == ast_literal) {
+		if(strcmp(am->value.list[0]->value.str, "out") == 0) {
 			ast_debug_print(result);
 			ast_delete(result);
 			return NULL;
-		} else if(strcmp(bc->e->accidental_matter->value.list[0]->value.str, "bind") == 0) {
+		} else if(strcmp(am->value.list[0]->value.str, "bind") == 0) {
 			return result;
 		}
 	}

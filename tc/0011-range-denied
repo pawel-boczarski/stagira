@@ -1,5 +1,5 @@
 now "check if write access is properly denied"
-[0..1]
+[0..1,out]
 (0..4)
 seq(set[0](100), set[1](200), get[out](0), get[out](1), set[2](300));
 

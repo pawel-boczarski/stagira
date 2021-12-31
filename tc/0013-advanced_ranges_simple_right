@@ -1,0 +1,27 @@
+now "preset values to detect potential errors"
+[0..4]
+seq(
+    set[0](100),
+    set[1](200),
+    set[2](300),
+    set[3](400),
+    set[4](500)
+);
+
+func "print a range from given index to the end"
+[out,10]
+(a..4,10)
+seq(
+    set[10](a),
+    loop(
+        op[bind](get[bind](10), "<=", 4),
+        seq(
+            get[out](get[bind](10)),
+            op[10](get[bind](10), "+", 1)
+        )
+    )
+) : "printRangeRight";
+
+now "print last four numbers" [out](1..4) printRangeRight(1);
+now "horizontal line" [out] print("-------");
+now "print last three numbers" [out](2..4) printRangeRight(2);
