@@ -165,6 +165,93 @@ Because Stagira does not recognize `n` when the function is loaded, it will look
 As this might make unpredictable results in long parameter list, this is not recommended to use the same name for binding in matter clause and a binding in species clause when defining a function, even if we use the same variable for read and write.
 In such a case, the parameter would be bound when reading the accidental matter clause, and if the same occurred in the species clause, this would be misbound to the next unbound parameter causing errors.
 
+## Ranges
+
+As we can see, the matter (write-out) & species (read-in) declarations swell very fast. Even than the `fib` function from the previous example is not that complicated, it reads and writes quite a number of memory cells:
+
+`now "show how long is the declaration of reads () and writes []..." [0,1,2,3,out](0,1,2,3) fib(15);`
+
+This is actually an intended effect to *discourage using global variables* (even though we do not have any other possibility just for now...) and make their usage clear and explicit. However if we use some cells as a regular array, and it has more than four or five cells, declaring it this way is neither practical nor even possible in some cases.
+
+This is what ranges are for. Actually, in the matter & species declaration context, for a continuous range of cells, this is possible to use double-dot-connected terminal values of that range. Eg `[0,1,2,3]` in matter clause can be shortened to `[0..3]` expression.
+
+Please note range is not just a syntactic sugar, it has a different internal representation. However this:
+
+`now "this looks much better with enumerations" [0..3, out](0..3) fib(15);`
+
+works just the same as the longer version above.
+
+## Binding ranges
+
+Ranges, just as single cells, might be declared but not bound in matter and species parameters. There are two cases to be distinguished - either left or right binding is undefined (`0..a` , `a..0`) or both of them (`a..b`).
+
+In the first case only the missing part is looked for in the accidental parameters. So the function caller only specifies the missing number defining the end:
+
+```
+now "preset values to detect potential errors"
+[0..4]
+seq(
+    set[0](100),
+    set[1](200),
+    set[2](300),
+    set[3](400),
+    set[4](500)
+);
+
+func "print a range from zero"
+[out,10]
+(0..a,10)
+seq(
+    set[10](0),
+    loop(
+        op[bind](get[bind](10), "<=", set[bind](a)),
+        seq(
+            get[out](get[bind](10)),
+            op[10](get[bind](10), "+", 1)
+        )
+    )
+) : "printRangeLeft";
+
+now "print first four numbers" [out](0..3) printRangeLeft(3);
+now "horizontal line" [out] print("-------");
+now "print first five numbers" [out](0..4) printRangeLeft(4);
+```
+
+Please note, that `printRangeLeft` function has one unbound parameter which is a range. However only one range final element is undefined, and this is actually the only unbound value to be passed in accidental parameters. This is why to make the `0..a` range a `0..3` range we only pass `3` as accidental parameter. If `printRangeLeft(0..3)` would be used instead of `printRangeLeft(3)`, this would be an error.
+
+This is an example for a range that is bound on it's left and unbound on its right side.
+For ranges that are only right-bound the mode of operation is the same - we only supply the missing end in accidental parameters.
+
+However the situation changes when the range is undefined as whole - it is when both ends are undefined.
+In such a case we do not pass the final elements separately - but a range as whole. In such a case trying to bind the ends by passing two separate accidental parameters would be an error:
+
+```
+func "print a range from zero"
+[out,10]
+(a..b,10)
+seq(
+    set[10](a),
+    loop(
+        op[bind](get[bind](10), "<=", set[bind](b)),
+        seq(
+            get[out](get[bind](10)),
+            op[10](get[bind](10), "+", 1)
+        )
+    )
+) : "printRange";
+
+now "print numbers 2,3,4" [out](2..4) printRange(2..4);
+now "horizontal line" [out] print("-------");
+now "print all numbers" [out](0..4) printRange(0..4);
+now "horizontal line" [out] print("-------");
+now "print second-to-last two numbers" [out](3..4) printRange(3..4);
+```
+
+Even though there are two unbound parameters `a` and `b` at the most basic level, they form a range, and this is whole the range that is unbound. Therefore we specify it as one parameter in the accidental params: `printRange(3..4)`. If `printRange(3,4)` would be used instead, this would be incorrect.
+
+*The motivation for this is rather making the code more logical, as the very act of passing the parameters shows that what we pass is a range, which could be hardly deduced if two comma-separated values were passed.*
+
+
 ## The special `out` binding
 
 Sometimes we want to print a value immediately instead of storing it. This is why `out` special literal is used. It is only valid in matter clause (square brackets) due to the very nature of "output".
@@ -178,6 +265,15 @@ quietly sets cell 0 to 1997, while
 `now "demonstrate how to output a number" [out] set[out](1997);`
 
 will not set anything in the memory, putting the number on the screen.
+
+## The special `in` binding
+
+Similar to `out` , there is also an `in` binding enabling the user to input something from the keyboard.
+For now only integer values are supported. Of course this parameter only has sense in the "species" part as this is read-only by nature.
+
+This code just echoes the number input by the user:
+
+`now "check simplest echo possible" [out](in) set[out](in);`
 
 ## The special `bind` binding
 
@@ -205,4 +301,4 @@ e.g. "my dog", "my sister's dog" - individuals, "dog" - species.
 Species is a formal (intellectual, spiritual) phenomenon free of matter - otherwise cognition could not accept it._
 
 However, because in our terminology the function body is the *form*, I decided to use the term
-"species" as it's kind of a form - forms don't change. We have to look from the function's perspective and not ours because the destination of the species in Stagira is not our knowledge (as in normal meaning of "species"), but the function's "knowledge".
+*species* as it's kind of a form - forms don't change. We have to look from the function's perspective and not ours because the destination of the species in Stagira is not our knowledge (as in normal meaning of "species"), but the function's "knowledge".
