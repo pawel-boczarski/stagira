@@ -57,6 +57,21 @@ struct ast *ast_expression_new(struct expression *e) {
     return r;
 }
 
+struct ast *ast_in_new() {
+	struct ast *r = calloc(1, sizeof(*r)); r->type = ast_in;
+	return r;
+}
+
+struct ast *ast_out_new() {
+	struct ast *r = calloc(1, sizeof(*r)); r->type = ast_out;
+	return r;
+}
+
+struct ast *ast_bind_new() {
+	struct ast *r = calloc(1, sizeof(*r)); r->type = ast_bind;
+	return r;
+}
+
 int ast_type(struct ast *a) {
 	return a ? a->type : -127;
 }
@@ -95,6 +110,8 @@ void ast_debug_print_level(struct ast *a, int depth) {
 		for(int i = 0; i < a->type; i++) {
 			ast_debug_print_level(a->value.list[i], depth+1);
 		}
+	} else if(a->type == ast_expression) {
+		_expression_print(a->value.e, depth+1);
 	} else {
 		// TODO: expressions don't go well!
 		printf("Unknown type: %d\n", a->type);

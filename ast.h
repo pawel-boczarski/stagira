@@ -6,6 +6,9 @@
 #define ast_list_length ast_type
 
 enum {
+   ast_bind = -9,
+   ast_out = -8,
+   ast_in = -7,
    ast_expression = -5,
    ast_number = -4,
    ast_range = -3,
@@ -35,6 +38,11 @@ struct ast *ast_list_new();
 struct ast *ast_list_append(struct ast *a, struct ast *b);
 
 struct ast *ast_expression_new(struct expression *e);
+
+struct ast *ast_in_new();
+struct ast *ast_out_new();
+struct ast *ast_bind_new();
+
 
 void ast_delete(struct ast *a);
 int ast_type(struct ast *a); /* if >= 0, this is a list, otherwise, ast_number or ast_string */

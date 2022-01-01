@@ -26,6 +26,8 @@ void binding_context_delete(struct binding_context *bc) {
 
 struct ast *binding_context_get_binding(struct binding_context *bc, char *name, int check_parents) {
 //	printf("get bcsb ptr=%p, name=%s\n", bc, name);
+//	printf("Looking for binding '%s' in ...\n", name);
+	//binding_context_print(bc, 0);
 	if(!bc) {
 		printf("Null binding context, return!");
 		return NULL;
@@ -44,7 +46,7 @@ struct ast *binding_context_get_binding(struct binding_context *bc, char *name, 
 }
 
 // todo shouldn't we check in parents?
-int binding_context_is_bound(struct binding_context *bc, char *name) {
+int binding_context_is_bound(struct binding_context *bc, char *name, int check_parents) {
 	//printf("checking '%s'...", name);
 	if(!bc) {
 		printf("Null binding context, return!");
@@ -60,19 +62,14 @@ int binding_context_is_bound(struct binding_context *bc, char *name) {
 		if(bc->bindings[i].name && strcmp(bc->bindings[i].name, name) == 0) { /*printf("Bound.\n");*/ return 1; }
 	}
 
-    //printf("Not bound!\n");
-	return 0;
-#if 0
 	if(check_parents && bc->parent) {
-		return binding_context_get_binding(bc->parent, name, check_parents);
+		return binding_context_get_binding(bc->parent, name, check_parents) == NULL;
 	}
-#endif
+
+	return 0;
 }
 
 void binding_context_set_binding(struct binding_context *bc, char *name, struct ast *value) {
-//	printf("set bcsb ptr=%p, name=%s\n", bc, name);
-//	printf("value:\n");
-//	ast_debug_print(value);
 	if(!bc) {
 		printf("Null binding context, return!\n");
 		return;
@@ -95,8 +92,8 @@ void _binding_context_print(struct binding_context *bc, int print_parents, int l
 		for(int j = 0; j < level; j++) putchar(' '); printf("No bindings.");
 		return;
 	}
-	printf("Expression: ");
-	expression_print(bc->e);
+	//printf("Expression: ");
+	//expression_print(bc->e);
 	for(int j = 0; j < level; j++) putchar(' '); printf("Bindings: %d\n", bc->bindings_size);
 	for(int i = 0; i < bc->bindings_size; i++) {
 		for(int j = 0; j < level+1; j++) putchar(' ');printf("NAME: %s\n", bc->bindings[i].name);

@@ -13,6 +13,7 @@
 
 int require_out_access(struct binding_context *bc);
 int require_in_access(struct binding_context *bc);
+
 int require_mem_write_access(struct binding_context *bc, int place);
 int require_mem_read_access(struct binding_context *bc, int place);
 

@@ -22,6 +22,8 @@ struct expression* expression_new(char *act_mode, char *goal,
                                  struct ast *matter, struct ast *species, struct ast *form,
                                  struct ast *accidental_matter, struct ast *accidental_species, char *name);
 
+
+void _expression_print(struct expression *e, int level);
 void expression_print(struct expression *e);
 
 #endif

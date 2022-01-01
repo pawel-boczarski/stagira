@@ -42,19 +42,23 @@ struct expression* expression_new(char *act_mode, char *goal,
 	return ret;
 }
 
-void expression_print(struct expression *e) {
-	printf("EFFICIENT CAUSE: '%s'\n", e->act_mode);
-	printf("FINAL CAUSE: '%s'\n", e->goal);
-	printf("MATTER:\n");
-	ast_debug_print_level(e->matter, 1);
-	printf("SPECIES:\n");
-	ast_debug_print_level(e->species, 1);
-	printf("FORM:\n");
-	ast_debug_print_level(e->form, 1);
-	printf("ACCIDENTAL MATTER:\n");
-	ast_debug_print_level(e->accidental_matter, 1);
-	printf("ACCIDENTAL SPECIES:\n");
-	ast_debug_print_level(e->accidental_species, 1);
+void _expression_print(struct expression *e, int level) {
+	for(int i = 0; i < level;i++) putchar(' '); printf("EFFICIENT CAUSE: '%s'\n", e->act_mode);
+	for(int i = 0; i < level;i++) putchar(' '); printf("FINAL CAUSE: '%s'\n", e->goal);
+	for(int i = 0; i < level;i++) putchar(' '); printf("MATTER:\n");
+	ast_debug_print_level(e->matter, 1+level);
+	for(int i = 0; i < level;i++) putchar(' '); printf("SPECIES:\n");
+	ast_debug_print_level(e->species, 1+level);
+	for(int i = 0; i < level;i++) putchar(' '); printf("FORM:\n");
+	ast_debug_print_level(e->form, 1+level);
+	for(int i = 0; i < level;i++) putchar(' '); printf("ACCIDENTAL MATTER:\n");
+	ast_debug_print_level(e->accidental_matter, 1+level);
+	for(int i = 0; i < level;i++) putchar(' '); printf("ACCIDENTAL SPECIES:\n");
+	ast_debug_print_level(e->accidental_species, 1+level);
 	
-	printf("NAME: '%s'\n", e->name);
+	for(int i = 0; i < level;i++) putchar(' '); printf("NAME: '%s'\n", e->name);
+}
+
+void expression_print(struct expression *e) {
+	_expression_print(e, 0);
 }

@@ -18,17 +18,12 @@ struct world {
 } env;
 
 struct ast* eval_queue(struct expression *e) {
-//	printf("Queueing...\n");
-//	expression_print(e);
-// 1. check if executable now
 	if(e->act_mode && strcmp(e->act_mode, "now") == 0) {
-//	    printf("Evaluating this expression should take place now.\n");
 		env.bc_main.e = e;
 		return eval_now(&(env.bc_main));
 	} else if(e->name) {
-//	        printf("This expression will be stored.\n");
 		env.stored_exp = realloc(env.stored_exp, ++env.stored_exp_size * sizeof(*env.stored_exp));
-		env.stored_exp[env.stored_exp_size-1] = e;		
+		env.stored_exp[env.stored_exp_size-1] = e;
 	} else {
 		printf("Not knowing how to act, skipping...\n");
 	}
@@ -57,7 +52,8 @@ struct ast* eval_now(struct binding_context *bc) {
 			for(int i = 0; i < env.stored_exp_size; i++) {
 				// note this will run more functions if more are defined - do we support "universals" ? ;)
 				if(strcmp(bc->e->form->value.str, env.stored_exp[i]->name) == 0) {
-					_eval_in_child_context(&env.bc_main, env.stored_exp[i]);
+//					printf("BC accidentals: "); ast_debug_print(bc->e->accidental_matter);
+					_eval_in_child_context(bc, env.stored_exp[i]);
 				}
 			}
 		}
@@ -71,23 +67,46 @@ int _create_bindings(struct binding_context *bc_child, struct ast *access_list, 
 
 	int aal_no = ast_list_length(accidental_access_list);
 
+//	printf("ACCESS LIST: "); ast_debug_print(access_list);
+//	printf("ACCIDENTAL A L :"); ast_debug_print(accidental_access_list);
+
 	// todo what if something appears in both places - avoid this!
 	int aal_to_bind = 0;
 	for(int i = 0; i < al_no; i++) {
-		if(access_list->value.list[i]->type == ast_literal && !binding_context_is_bound(bc_child, access_list->value.list[i]->value.str)) {
+		if(access_list->value.list[i]->type == ast_literal && !binding_context_is_bound(bc_child, access_list->value.list[i]->value.str, 0)) {
 			if(aal_to_bind >= aal_no) {
 				printf("_eval_in_child_context: could not bind '%s' parameter for function '%s'",
 							access_list->value.list[i]->value.str,
-							e->form->value.str);
+							bc->e->form->value.str);
+				printf("Aal to bind = %d, aal_no = %d\n", aal_to_bind, aal_no);
+				assert(0);
 				binding_context_delete(bc_child);
 				return 0;
 			}
-			binding_context_set_binding(bc_child, access_list->value.list[i]->value.str, accidental_access_list->value.list[aal_to_bind++]);
+
+			struct ast *current_aal_binding = accidental_access_list->value.list[aal_to_bind];
+			if(current_aal_binding->type == ast_expression) {
+				struct expression *sube = current_aal_binding->value.e;
+				struct ast *ret = _eval_in_child_context(bc, sube);
+				if(!ret) {
+					printf("eval: could not evaluate subexpression as binding, the expression was: ");
+					expression_print(sube);
+				}
+				binding_context_set_binding(bc_child, access_list->value.list[i]->value.str, ret);
+			} else if(current_aal_binding->type == ast_number) {
+				binding_context_set_binding(bc_child, access_list->value.list[i]->value.str, current_aal_binding);
+			} else {
+				// TODO. Clarify this. The partial bubble sort test passes for now...
+		//		printf("eval: warning: can we even handle literal in accidental access? Hope so...\n");
+
+		// probably nothing was bound here...
+			}
+			aal_to_bind++;
 		} else if(access_list->value.list[i]->type == ast_range) {
 			struct ast *left = access_list->value.list[i]->value.list[0];
 			struct ast *right = access_list->value.list[i]->value.list[1];
-			int left_bound = (left->type == ast_number) || binding_context_is_bound(bc_child, left->value.str);
-			int right_bound = (right->type == ast_number) || binding_context_is_bound(bc_child, right->value.str);
+			int left_bound = (left->type == ast_number) || binding_context_is_bound(bc_child, left->value.str, 0);
+			int right_bound = (right->type == ast_number) || binding_context_is_bound(bc_child, right->value.str, 0);
 
 			if(!left_bound && !right_bound) {
 				// user should support whole range as an argument
@@ -98,7 +117,7 @@ int _create_bindings(struct binding_context *bc_child, struct ast *access_list, 
 
 				if(accidental_access_list->value.list[aal_to_bind]->type != ast_range) {
 					printf("eval: We don't do this way. When both range ends are unbound we support a..b range as parameter\n");
-					return NULL;
+					return 0;
 				}
 
 				binding_context_set_binding(bc_child, left->value.str,
@@ -149,18 +168,27 @@ struct ast *_eval_in_child_context (struct binding_context *bc, struct expressio
 	int mno = ast_list_length(e->matter);
 	int sno = ast_list_length(e->species);
 
+	// todo - in some cases bind is "matter-to-matter", not "matter to accidental matter" - vide the case of 0013-bubble-sort
 	int am_no = ast_list_length(bc->e->accidental_matter);
 	int s_no = ast_list_length(bc->e->accidental_species);
 
 	// todo what if something appears in both places - avoid this!
 	int am_to_bind = 0;
+
+	// try make MATERIAL binds to parent before doing this to accidentals...
+
 	if(!_create_bindings(bc_child, e->matter, bc->e->accidental_matter, e)) {
-		printf("_eval_in_child_context: could not bind write-out parameters");
+		printf("_eval_in_child_context: could not bind write-out parameters.\n");
+		
+		// fallback to matter...
+		
 		return NULL;
 	}
 
+	// try make SPECIFIC binds to parent before doing this to accidentals...
+
 	if(!_create_bindings(bc_child, e->species, bc->e->accidental_species, e)) {
-		printf("_eval_in_child_context: could not bind read-in parameters");
+		printf("_eval_in_child_context: could not bind read-in parameters.\n");
 		return NULL;
 	}
 
@@ -192,61 +220,107 @@ struct ast* eval_print(struct binding_context *bc) {
 	return NULL;
 }
 
-struct ast *_eval_get(struct binding_context *bc, int direct) {
-	// we need "where to" and "what"
-	struct ast *result = NULL;
-	if(ast_list_length(bc->e->accidental_matter) < 1) {
-		printf("get: no output destination\n");
-		binding_context_print(bc, 1);
-		return NULL;
-	}
-	if(ast_list_length(bc->e->accidental_species) < 1) {
-		printf("get: no input place\n");
-		binding_context_print(bc, 1);
-		return NULL;
-	}
-
-	struct ast *am = bc->e->accidental_matter; // TODO refactor
-	struct ast *as = bc->e->accidental_species;
-
-	int read_dest; // todo this could be something else...
-	if(as->value.list[0]->type == ast_number) {
-		read_dest = as->value.list[0]->value.num;
-	} else if(as->value.list[0]->type == ast_literal) { /* this will need change for "in" */
-		if(strcmp(as->value.list[0]->value.str, "in") == 0) {
-			scanf("%d", &read_dest);
+/// destination = as->value.list[0]
+struct ast *_decode_destination(struct binding_context *bc, struct ast *destination) { // TODO origin should be stack trace...
+	struct ast *read_dest = NULL; // todo this could be something else...
+	if(destination->type == ast_number) {
+		read_dest = ast_int_new(destination->value.num);
+	} else if(destination->type == ast_literal) { /* this will need change for "in" */
+		if(strcmp(destination->value.str, "in") == 0) {
+			//scanf("%d", &read_dest);
+			return ast_in_new();
+		} else if(strcmp(destination->value.str, "out") == 0) {
+			//ast_debug_print(result);
+			//ast_delete(result);
+			return ast_out_new();
+		} else if(strcmp(destination->value.str, "bind") == 0) {
+			//ast_debug_print(result);
+			//ast_delete(result);
+			return ast_bind_new();
 		} else {
-			struct ast *binding = binding_context_get_binding(bc->parent, as->value.list[0]->value.str, 1);
+			struct ast *binding = binding_context_get_binding(bc->parent, destination->value.str, 1);
 			if(!binding) {
-				printf("get: cannot get binding '%s'\n", as->value.list[0]->value.str);
+				printf("get: cannot get binding '%s'\n", destination->value.str);
+				// todo stack trace
 				return NULL;
 			}
-			if(binding->type != ast_number) {
-				printf("get: cannot serve other type than number, and binding '%s' does not represent it\n",
-						as->value.list[0]->value.str);
-			return NULL;
+
+			struct binding_context *current_bc = bc->parent;
+			while(binding->type == ast_literal && binding && current_bc) {
+				printf("Unwinding...\n");
+
+				binding = binding_context_get_binding(current_bc, binding->value.str, 1);
+				ast_debug_print(binding);
+				current_bc = current_bc->parent;
 			}
-			read_dest = binding->value.num;
+
+			if(!binding) {
+				printf("get: could not unwind binding '%s'\n", destination->value.str);
+				// todo stack trace
+				return NULL;
+			}
+//			printf("Current bc='%p'\n", current_bc);
+
+
+			if(binding->type != ast_number) {
+				printf("get: cannot serve other type than number, and binding '%s' does not represent it:\n",
+						destination->value.str);
+				ast_debug_print(binding);
+				assert(0);
+				return NULL;
+			}
+			return ast_int_new(binding->value.num);
 		}
-	} else if(as->value.list[0]->type == ast_expression) {
+	} else if(destination->type == ast_expression) {
 		// todo change this
-		struct binding_context *bc_child = binding_context_new(bc, as->value.list[0]->value.e);
+		struct binding_context *bc_child = binding_context_new(bc, destination->value.e);
 		// bindings now ?
 		struct ast *return_value = eval_now(bc_child);
 		if(return_value->type != ast_number) {
 			printf("get: can't serve other input destination than number for get\n");
 			return NULL;
 		}
-		read_dest = return_value->value.num;
+		read_dest = ast_int_new(return_value->value.num); // it looks like a memory leak
 		binding_context_delete(bc_child);
+		return read_dest;
 	} else {
 		printf("Don't know how to serve other argument than num for get.\n");
 		return NULL;
 	}
+}
+
+// TODO access control for literal bindings in matter/form won't work for now...
+struct ast *_eval_get(struct binding_context *bc, int direct) {
+	// we need "where to" and "what"
+	struct ast *result = NULL;
+	if(ast_list_length(bc->e->accidental_matter) < 1) {
+		printf("get: no output destination\n");
+		return NULL;
+	}
+	if(ast_list_length(bc->e->accidental_species) < 1) {
+		printf("get: no input place\n");
+		return NULL;
+	}
+
+	struct ast *am = bc->e->accidental_matter; // TODO refactor
+	struct ast *as = bc->e->accidental_species;
+
+	struct ast *decoded_src = _decode_destination(bc, as->value.list[0]);
+	int read_dest;
+	if(decoded_src->type == ast_number) {
+		read_dest = decoded_src->value.num;
+	} else if(decoded_src->type == ast_in) {
+			scanf("%d", &read_dest);
+	} else if(decoded_src->type == ast_out) {
+		printf("get: This is impossible for 'out' to be an input parameter\n");
+		return NULL;
+	} else if(decoded_src->type == ast_bind) {
+		printf("get: this is impossible to bind an input parameter\n");
+		return NULL;
+	}
+
 	if(!direct && !require_mem_read_access(bc, read_dest)) {
-		//printf("get: denied read access\n");
-			//binding_context_print(bc, 1);
-	return NULL;
+		return NULL;
 	}
 
 	if(direct) {
@@ -255,23 +329,28 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 		result = ast_int_new(env.memory[read_dest]);
 	}
 
-	// this code to be stored
-	if(am->value.list[0]->type == ast_number) {
-		int write_dest = am->value.list[0]->value.num;
+	struct ast *decoded_dest = _decode_destination(bc, am->value.list[0]);
+	int write_dest;
+	if(decoded_dest->type == ast_number) {
+		int write_dest = decoded_dest->value.num;
 		if(!require_mem_write_access(bc, write_dest)) {
 			return NULL;
 		}
 		env.memory[write_dest] = result->value.num;
 		ast_delete(result);
 		return NULL;
-	} else if(am->value.list[0]->type == ast_literal) {
-		if(strcmp(am->value.list[0]->value.str, "out") == 0) {
-			ast_debug_print(result);
-			ast_delete(result);
+	} else if(decoded_dest->type == ast_in) {
+		printf("get: This is impossible for 'in' to be an output parameter\n");
+		return NULL;
+	} else if(decoded_dest->type == ast_out) {
+		if(!require_out_access(bc)) {
 			return NULL;
-		} else if(strcmp(am->value.list[0]->value.str, "bind") == 0) {
-			return result;
 		}
+		ast_debug_print(result);
+		ast_delete(result);
+		return NULL;
+	} else if(decoded_dest->type == ast_bind) {
+		return result;
 	}
 	
 	return NULL;
@@ -303,6 +382,8 @@ struct ast *eval_op(struct binding_context *bc) {
 	char *opname;
 //	int result = 0;
 
+
+	// todo rework the arguments just as in the case of set/get...
 	for(int i = 0; i < 2; i++) {
 		if(as->value.list[2*i]->type == ast_expression) {
 			struct ast *ret = _eval_in_child_context(bc, as->value.list[2*i]->value.e);
@@ -337,7 +418,7 @@ struct ast *eval_op(struct binding_context *bc) {
 	else if(strcmp(opname, "/") == 0) result = ast_int_new(arg[0] / arg[1]);
 	else if(strcmp(opname, "%%") == 0) result = ast_int_new(arg[0] % arg[1]);
 
-	// this code to be stored
+	// this code to be stored - to be reworked as in set/get
 	if(bc->e->accidental_matter->value.list[0]->type == ast_number) {
 		int write_dest = bc->e->accidental_matter->value.list[0]->value.num;
 		if(!require_mem_write_access(bc, write_dest)) {

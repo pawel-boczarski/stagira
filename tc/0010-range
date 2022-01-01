@@ -1,11 +1,11 @@
 now "check normal specification"
-[0,1,2,3]
+[0,1,2,3,out]
 (0,1,2,3)
 seq(set[0](10), set[1](20), set[2](30), set[3](40),
     get[out](0), get[out](1), get[out](2), get[out](3));
 
 now "check if range spec works"
-[0..3]
+[0..3,out]
 (0..3)
 seq(set[0](1), set[1](2), set[2](3), set[3](4),
     get[out](0), get[out](1), get[out](2), get[out](3));
