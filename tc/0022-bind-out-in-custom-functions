@@ -1,0 +1,5 @@
+func "To print a square of a number"
+[b](a)
+    op[b](set[bind](a), "*", set[bind](a)) : "sqr";
+
+now "Verify the above function for argument 5" [out] sqr[out](5);

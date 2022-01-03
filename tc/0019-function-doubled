@@ -1,0 +1,9 @@
+func "first definition of the function"
+[out]
+print("Hello, world!") : "hello";
+
+func "second erroneous definition of the function"
+[out]
+print("Hello, cruel world!") : "hello";
+
+now "This should not write out at all" [out] hello();

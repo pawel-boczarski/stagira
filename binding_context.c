@@ -6,7 +6,6 @@
 #include "ast.h"
 #include "binding_context.h"
 
-
 struct binding_context *binding_context_new(struct binding_context *parent, struct expression *e) {
 	struct binding_context *bc;
 	bc = calloc(1, sizeof(*bc));
@@ -19,7 +18,7 @@ struct binding_context *binding_context_new(struct binding_context *parent, stru
 void binding_context_delete(struct binding_context *bc) {
 	for(int i = 0; i < bc->bindings_size; i++) {
 		free(bc->bindings[i].name);
-		//ast_delete()
+		//ast_delete() => ?
 	}
 	free(bc);
 }
@@ -96,10 +95,10 @@ void _binding_context_print(struct binding_context *bc, int print_parents, int l
 	//expression_print(bc->e);
 	for(int j = 0; j < level; j++) putchar(' '); printf("Bindings: %d\n", bc->bindings_size);
 	for(int i = 0; i < bc->bindings_size; i++) {
-		for(int j = 0; j < level+1; j++) putchar(' ');printf("NAME: %s\n", bc->bindings[i].name);
+		for(int j = 0; j < level+1; j++) putchar(' ');printf(" '%s' => ", bc->bindings[i].name);
 		ast_debug_print_level(bc->bindings[i].binding, 1+level);
-		printf("Expression: ");
-		expression_print(bc->e);
+//		printf("Expression: ");
+//		expression_print(bc->e);
 	}
 	if(print_parents) {
 		_binding_context_print(bc->parent, print_parents, level+1);

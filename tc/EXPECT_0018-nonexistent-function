@@ -1,0 +1,3 @@
+Error: tried calling a non-existent function 'sevenMileShoes'!
+There should be an error string below and above...
+Error: tried calling a non-existent function 'sevenMileShoes'!

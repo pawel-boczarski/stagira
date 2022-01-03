@@ -21,12 +21,23 @@ struct ast* eval_queue(struct expression *e) {
 	if(e->act_mode && strcmp(e->act_mode, "now") == 0) {
 		env.bc_main.e = e;
 		return eval_now(&(env.bc_main));
-	} else if(e->name) {
+	} else if(e->act_mode && strcmp(e->act_mode, "func") == 0) {
+		if(!e->name) {
+			printf("eval_queue: Can't store a function with no name, did you forget : \"functionName\" before the semicolon?\n");
+			return NULL;
+		}
+		for(int i = 0; i < env.stored_exp_size; i++) {
+			if(strcmp(env.stored_exp[i]->name, e->name) == 0) {
+				printf("eval_queue: Can't store function with name '%s' twice!\n");
+				return NULL;
+			}
+		}
 		env.stored_exp = realloc(env.stored_exp, ++env.stored_exp_size * sizeof(*env.stored_exp));
 		env.stored_exp[env.stored_exp_size-1] = e;
 	} else {
-		printf("Not knowing how to act, skipping...\n");
+		printf("eval_queue: Not knowing how to act, skipping...\n");
 	}
+	return NULL;
 }
 struct ast *_eval_in_child_context (struct binding_context *bc, struct expression *e);
 
@@ -48,15 +59,22 @@ struct ast* eval_now(struct binding_context *bc) {
 			return eval_loop(bc);
 		} else if(strcmp(bc->e->form->value.str, "op") == 0) {
 			return eval_op(bc);
+		} else if(strcmp(bc->e->form->value.str, "pst") == 0) {
+			return eval_pst(bc);
 		} else {
 			for(int i = 0; i < env.stored_exp_size; i++) {
 				// note this will run more functions if more are defined - do we support "universals" ? ;)
 				if(strcmp(bc->e->form->value.str, env.stored_exp[i]->name) == 0) {
 //					printf("BC accidentals: "); ast_debug_print(bc->e->accidental_matter);
-					_eval_in_child_context(bc, env.stored_exp[i]);
+					return _eval_in_child_context(bc, env.stored_exp[i]);
 				}
 			}
+			printf("Error: tried calling a non-existent function '%s'!\n", bc->e->form->value.str);
+//			eval_pst(bc);
+			return 0;
 		}
+	} else {
+		assert(0);
 	}
 }
 
@@ -221,26 +239,22 @@ struct ast* eval_print(struct binding_context *bc) {
 }
 
 /// destination = as->value.list[0]
-struct ast *_decode_destination(struct binding_context *bc, struct ast *destination) { // TODO origin should be stack trace...
+struct ast *_decode_parameter(struct binding_context *bc, struct ast *destination) { // TODO origin should be stack trace...
 	struct ast *read_dest = NULL; // todo this could be something else...
 	if(destination->type == ast_number) {
 		read_dest = ast_int_new(destination->value.num);
 	} else if(destination->type == ast_literal) { /* this will need change for "in" */
 		if(strcmp(destination->value.str, "in") == 0) {
-			//scanf("%d", &read_dest);
 			return ast_in_new();
 		} else if(strcmp(destination->value.str, "out") == 0) {
-			//ast_debug_print(result);
-			//ast_delete(result);
 			return ast_out_new();
 		} else if(strcmp(destination->value.str, "bind") == 0) {
-			//ast_debug_print(result);
-			//ast_delete(result);
 			return ast_bind_new();
 		} else {
 			struct ast *binding = binding_context_get_binding(bc->parent, destination->value.str, 1);
 			if(!binding) {
 				printf("get: cannot get binding '%s'\n", destination->value.str);
+				eval_pst(bc);
 				// todo stack trace
 				return NULL;
 			}
@@ -276,6 +290,9 @@ struct ast *_decode_destination(struct binding_context *bc, struct ast *destinat
 		struct binding_context *bc_child = binding_context_new(bc, destination->value.e);
 		// bindings now ?
 		struct ast *return_value = eval_now(bc_child);
+		if(!return_value) {
+			printf("_decode_parameter: could not decode, child returned null value ('bind' missing?) !");
+		}
 		if(return_value->type != ast_number) {
 			printf("get: can't serve other input destination than number for get\n");
 			return NULL;
@@ -305,7 +322,7 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 	struct ast *am = bc->e->accidental_matter; // TODO refactor
 	struct ast *as = bc->e->accidental_species;
 
-	struct ast *decoded_src = _decode_destination(bc, as->value.list[0]);
+	struct ast *decoded_src = _decode_parameter(bc, as->value.list[0]);
 	int read_dest;
 	if(decoded_src->type == ast_number) {
 		read_dest = decoded_src->value.num;
@@ -329,7 +346,8 @@ struct ast *_eval_get(struct binding_context *bc, int direct) {
 		result = ast_int_new(env.memory[read_dest]);
 	}
 
-	struct ast *decoded_dest = _decode_destination(bc, am->value.list[0]);
+	// todo this code to be stored
+	struct ast *decoded_dest = _decode_parameter(bc, am->value.list[0]);
 	int write_dest;
 	if(decoded_dest->type == ast_number) {
 		int write_dest = decoded_dest->value.num;
@@ -374,70 +392,80 @@ struct ast *eval_op(struct binding_context *bc) {
 	}
 	if(am_no < 1) {
 		printf("op: at least one write parameter necessary");
+		return NULL;
 	}
 
 	struct ast *as = bc->e->accidental_species;
 	struct ast *am = bc->e->accidental_matter;
-	int arg[2];
 	char *opname;
-//	int result = 0;
-
-
-	// todo rework the arguments just as in the case of set/get...
-	for(int i = 0; i < 2; i++) {
-		if(as->value.list[2*i]->type == ast_expression) {
-			struct ast *ret = _eval_in_child_context(bc, as->value.list[2*i]->value.e);
-			if(ret->type != ast_number) {
-			printf("eval_op: argument %d not a number", i+1);
-			return NULL;
-		}
-		arg[i] = ret->value.num;
-		} else if(as->value.list[2*i]->type == ast_number) {
-			arg[i] = as->value.list[2*i]->value.num;
-		} else {
-			printf("eval_op: argument %d not a number", i+1);
-			return NULL;
-		}
-	}
 
 	if(as->value.list[1]->type != ast_string) {
 		printf("eval_op: operator not a string");
 		return NULL;
 	}
+
+	// This will likely fail if something is not right...
 	opname = as->value.list[1]->value.str;
 
-	if(strcmp(opname, "<") == 0) result = ast_int_new(!!(arg[0] < arg[1]));
-	else if(strcmp(opname, "<=") == 0) result = ast_int_new(!!(arg[0] <= arg[1]));
-	else if(strcmp(opname, ">") == 0) result = ast_int_new(!!(arg[0] > arg[1]));
-	else if(strcmp(opname, ">=") == 0) result = ast_int_new(!!(arg[0] >= arg[1]));
-	else if(strcmp(opname, "=") == 0) result = ast_int_new(!!(arg[0] == arg[1]));
-	else if(strcmp(opname, "~=") == 0) result = ast_int_new(!!(arg[0] != arg[1]));
-	else if(strcmp(opname, "+") == 0) result = ast_int_new(arg[0] + arg[1]);
-	else if(strcmp(opname, "-") == 0) result = ast_int_new(arg[0] - arg[1]);
-	else if(strcmp(opname, "*") == 0) result = ast_int_new(arg[0] * arg[1]);
-	else if(strcmp(opname, "/") == 0) result = ast_int_new(arg[0] / arg[1]);
-	else if(strcmp(opname, "%%") == 0) result = ast_int_new(arg[0] % arg[1]);
+	int argv[2];
+	for(int i = 0; i < 2; i++) {
+		struct ast *arg = _decode_parameter(bc, as->value.list[2*i]);
+		if(!arg) {
+			printf("Could not decode the argument for op!");
+			return free(arg), NULL;
+		}
+		if(arg->type == ast_number) {
+			argv[i] = arg->value.num;
+		} else if(arg->type == ast_in) {
+			scanf("%d", &argv[i]);
+		} else if(arg->type == ast_out) {
+			printf("op: This is impossible for 'out' to be an input parameter\n");
+			return ast_delete(arg), NULL;
+		} else if(arg->type == ast_bind) {
+			printf("op: this is impossible to bind an input parameter\n");
+			return ast_delete(arg), NULL;
+		}
+		ast_delete(arg);
+	}
 
-	// this code to be stored - to be reworked as in set/get
-	if(bc->e->accidental_matter->value.list[0]->type == ast_number) {
-		int write_dest = bc->e->accidental_matter->value.list[0]->value.num;
+	if(strcmp(opname, "<") == 0) result = ast_int_new(!!(argv[0] < argv[1]));
+	else if(strcmp(opname, "<=") == 0) result = ast_int_new(!!(argv[0] <= argv[1]));
+	else if(strcmp(opname, ">") == 0) result = ast_int_new(!!(argv[0] > argv[1]));
+	else if(strcmp(opname, ">=") == 0) result = ast_int_new(!!(argv[0] >= argv[1]));
+	else if(strcmp(opname, "=") == 0) result = ast_int_new(!!(argv[0] == argv[1]));
+	else if(strcmp(opname, "~=") == 0) result = ast_int_new(!!(argv[0] != argv[1]));
+	else if(strcmp(opname, "+") == 0) result = ast_int_new(argv[0] + argv[1]);
+	else if(strcmp(opname, "-") == 0) result = ast_int_new(argv[0] - argv[1]);
+	else if(strcmp(opname, "*") == 0) result = ast_int_new(argv[0] * argv[1]);
+	else if(strcmp(opname, "/") == 0) result = ast_int_new(argv[0] / argv[1]);
+	else if(strcmp(opname, "%%") == 0) result = ast_int_new(argv[0] % argv[1]);
+
+
+	struct ast *decoded_dest = _decode_parameter(bc, am->value.list[0]);
+	int write_dest;
+	if(decoded_dest->type == ast_number) {
+		int write_dest = decoded_dest->value.num;
 		if(!require_mem_write_access(bc, write_dest)) {
-			ast_delete(result);
 			return NULL;
 		}
 		env.memory[write_dest] = result->value.num;
 		ast_delete(result);
 		return NULL;
-	} else if(bc->e->accidental_matter->value.list[0]->type == ast_literal) {
-		if(strcmp(bc->e->accidental_matter->value.list[0]->value.str, "out") == 0) {
-			ast_debug_print(result);
-			ast_delete(result);
+	} else if(decoded_dest->type == ast_in) {
+		printf("get: This is impossible for 'in' to be an output parameter\n");
+		return NULL;
+	} else if(decoded_dest->type == ast_out) {
+		if(!require_out_access(bc)) {
 			return NULL;
-		} else if(strcmp(bc->e->accidental_matter->value.list[0]->value.str, "bind") == 0) {
-			return result;
 		}
+		ast_debug_print(result);
+		ast_delete(result);
+		return NULL;
+	} else if(decoded_dest->type == ast_bind) {
+		return result;
 	}
-	
+
+	assert(0);
 	return retval;
 }
 
@@ -506,4 +534,17 @@ struct ast *eval_if(struct binding_context *bc) {
 
 struct ast *eval_loop(struct binding_context *bc) {
 	return _eval_loop_if(bc, 1);
+}
+
+struct ast *eval_pst(struct binding_context *bc) {
+	int i = 0;
+	/*if(require_out_access(bc)) {
+		return NULL;
+	}*/ // maybe error should always go
+	printf("bc='%p', bc->e='%p'\n", bc, bc->e);
+	while(bc && bc->e) {
+		printf("#%d %s\n", i, bc->e->form->value.str);
+		binding_context_print(bc, 0);
+		bc = bc->parent, i++;
+	}
 }

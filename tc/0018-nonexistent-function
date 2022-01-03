@@ -1,0 +1,10 @@
+now "check if non-existent functions fail as required" []() sevenMileShoes[]();
+
+func "check how it goes in functions..."
+[out]()
+    seq(
+        print("There should be an error string below and above..."),
+        sevenMileShoes[]()
+    ) : "functionThatExists";
+
+now "check how existent functions cope with non-existent ones" [out]() functionThatExists();
