@@ -24,9 +24,6 @@ void binding_context_delete(struct binding_context *bc) {
 }
 
 struct ast *binding_context_get_binding(struct binding_context *bc, char *name, int check_parents) {
-//	printf("get bcsb ptr=%p, name=%s\n", bc, name);
-//	printf("Looking for binding '%s' in ...\n", name);
-	//binding_context_print(bc, 0);
 	if(!bc) {
 		printf("Null binding context, return!");
 		return NULL;
