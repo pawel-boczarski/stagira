@@ -13,6 +13,18 @@ struct ast *ast_int_new(int i) {
 
 struct ast *ast_range_new(struct ast *a, struct ast *b) {
 	struct ast *r = ast_list_new();
+	if(a->type != ast_number && a->type != ast_literal && a->type != ast_expression) {
+		printf("Only literals, numbers and expressions may be range ends, have (left side): ");
+		ast_debug_print(a);
+	//	assert(0);
+		return NULL;
+	}
+	if(b->type != ast_number && b->type != ast_literal && b->type != ast_expression) {
+		printf("Only literals, numbers and expressions may be range ends, have (right side): ");
+		ast_debug_print(b);
+	//	assert(0);
+		return NULL;
+	}
 	ast_list_append(r, a);
 	ast_list_append(r, b);
 	r->type = ast_range;

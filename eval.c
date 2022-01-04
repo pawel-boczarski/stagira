@@ -28,7 +28,7 @@ struct ast* eval_queue(struct expression *e) {
 		}
 		for(int i = 0; i < env.stored_exp_size; i++) {
 			if(strcmp(env.stored_exp[i]->name, e->name) == 0) {
-				printf("eval_queue: Can't store function with name '%s' twice!\n");
+				printf("eval_queue: Can't store function with name '%s' twice!\n", e->name);
 				return NULL;
 			}
 		}
@@ -110,19 +110,14 @@ int _create_bindings(struct binding_context *bc_child, struct ast *access_list, 
 			} else if(current_aal_binding->type == ast_number) {
 				binding_context_set_binding(bc_child, access_list->value.list[i]->value.str, current_aal_binding);
 			} else if(current_aal_binding->type == ast_literal) {
-	//			printf("Trying to bind literal: '%s'!\n", current_aal_binding->value.str);
 				binding_context_set_binding(bc_child, access_list->value.list[i]->value.str, current_aal_binding);
-	//			eval_pst(bc);
 			} else if(current_aal_binding->type == ast_out) {
-	//			printf("Trying to bind out!\n");
 				eval_pst(bc);
 				assert(0);
 			} else if(current_aal_binding->type == ast_in) {
-	//			printf("Trying to bind in!\n");
 				eval_pst(bc);
 				assert(0);
 			} else if(current_aal_binding->type == ast_bind) {
-	//			printf("Trying to bind 'bind'!\n");				
 				eval_pst(bc);
 				assert(0);
 			}
@@ -134,9 +129,9 @@ int _create_bindings(struct binding_context *bc_child, struct ast *access_list, 
 			int right_bound = (right->type == ast_number) || binding_context_is_bound(bc_child, right->value.str, 0);
 
 			if(!left_bound && !right_bound) {
-				// user should support whole range as an argument
-				if(right->type != ast_literal || left->type != ast_literal) {
-					printf("eval: do not know how to serve left & right range bind not being int or literal.\n");
+
+				if(!accidental_access_list->value.list[aal_to_bind]) {
+					printf("eval: one of bindings is invalid for range.\n");
 					return 0;
 				}
 
@@ -145,27 +140,49 @@ int _create_bindings(struct binding_context *bc_child, struct ast *access_list, 
 					return 0;
 				}
 
-				binding_context_set_binding(bc_child, left->value.str,
-					accidental_access_list->value.list[aal_to_bind]->value.list[0]);
+				struct ast *accidental_left_bind, *accidental_right_bind;
+				if(accidental_access_list->value.list[aal_to_bind]->value.list[0]->type == ast_expression) {
+					accidental_left_bind = _eval_in_child_context(bc, accidental_access_list->value.list[aal_to_bind]->value.list[0]->value.e);
+				} else {
+					accidental_left_bind = accidental_access_list->value.list[aal_to_bind]->value.list[0];
+				}
 
-				binding_context_set_binding(bc_child, right->value.str,
-					accidental_access_list->value.list[aal_to_bind++]->value.list[1]);
+				if(accidental_access_list->value.list[aal_to_bind]->value.list[1]->type == ast_expression) {
+					accidental_right_bind = _eval_in_child_context(bc, accidental_access_list->value.list[aal_to_bind]->value.list[1]->value.e);
+				} else {
+					accidental_right_bind = accidental_access_list->value.list[aal_to_bind]->value.list[1];
+				}
 
+				binding_context_set_binding(bc_child, left->value.str, accidental_left_bind);
+
+				binding_context_set_binding(bc_child, right->value.str, accidental_right_bind);
+				aal_to_bind++;
 			} else if(left_bound && !right_bound) {
+				// todo expression binding won't work. Check if "normal" operation for single literal will.
 				if(right->type == ast_literal) {
-					if(aal_to_bind >= aal_no) {
+					if(aal_to_bind >= aal_no) { /* todo up */
 						printf("_eval_in_child_context: could not bind '%s' write-out parameter for function '%s'",
 								access_list->value.list[i]->value.str,
 								e->form->value.str);
 						binding_context_delete(bc_child);
 						return 0;
 					}
-					binding_context_set_binding(bc_child, right->value.str, accidental_access_list->value.list[aal_to_bind++]);
+					// todo make a function or macro out of this?
+					struct ast *accidental_bind;
+					if(accidental_access_list->value.list[aal_to_bind]->type == ast_expression) {
+						accidental_bind = _eval_in_child_context(bc, accidental_access_list->value.list[aal_to_bind]->value.e);
+					} else {
+						accidental_bind = accidental_access_list->value.list[aal_to_bind];
+					}
+
+					binding_context_set_binding(bc_child, right->value.str, accidental_bind);
+					aal_to_bind++;
 				} else {
-					printf("eval: do not know how to serve left range bind not being int or literal.\n");
+					printf("eval: do not know how to serve left range bind not being int, literal or expression.\n");
 					return 0;
 				}
 			} else if(!left_bound && right_bound) {
+				// todo expression binding won't work. Check if "normal" operation for single literal will.
 				if(left->type == ast_literal) {
 					if(aal_to_bind >= aal_no) {
 						printf("_eval_in_child_context: could not bind '%s' write-out parameter for function '%s'",
@@ -174,13 +191,21 @@ int _create_bindings(struct binding_context *bc_child, struct ast *access_list, 
 						binding_context_delete(bc_child);
 						return 0;
 					}
-					binding_context_set_binding(bc_child, left->value.str, accidental_access_list->value.list[aal_to_bind++]);
+
+					// todo make a function or macro out of this?
+					struct ast *accidental_bind;
+					if(accidental_access_list->value.list[aal_to_bind]->type == ast_expression) {
+						accidental_bind = _eval_in_child_context(bc, accidental_access_list->value.list[aal_to_bind]->value.e);
+					} else {
+						accidental_bind = accidental_access_list->value.list[aal_to_bind];
+					}
+
+					binding_context_set_binding(bc_child, left->value.str, accidental_bind);
+					aal_to_bind++;
 				} else {
 					printf("eval: do not know how to serve right range bind not being int or literal.\n");
 					return 0;
 				}
-				//return 0;
-				
 			}
 		}
 	}
@@ -263,30 +288,14 @@ struct ast *_decode_parameter(struct binding_context *bc, struct ast *destinatio
 			if(binding->type == ast_literal && strcmp(binding->value.str, "bind") == 0) return ast_bind_new();
 
 			struct binding_context *current_bc = bc->parent;
-			#if 0
-			while(binding->type == ast_literal && binding && current_bc
-				  && !binding_context_is_bound(bc, binding->value.str, 0)) {
-				printf("Unwinding...\n");
-
-				binding = binding_context_get_binding(current_bc, binding->value.str, 1);
-				ast_debug_print(binding);
-				current_bc = current_bc->parent;
-			}
-			#endif
 
 			if(!binding) {
 				printf("get: could not unwind binding '%s'\n", destination->value.str);
 				// todo stack trace
 				return NULL;
 			}
-//			printf("Current bc='%p'\n", current_bc);
-
 
 			if(binding->type != ast_number) {
-//				printf("get: cannot serve other type than number, and binding '%s' does not represent it:\n",
-//						destination->value.str);
-//				ast_debug_print(binding);
-//				assert(0);
 				return binding;
 			}
 			return ast_int_new(binding->value.num);
@@ -525,6 +534,7 @@ struct ast *_eval_loop_if(struct binding_context *bc, int loop) {
 		return retval;
 	}
 
+	// todo additional type for error!
 	if(bc->e->accidental_species->value.list[1]->type == ast_expression) {
 		retval = _eval_in_child_context(bc, bc->e->accidental_species->value.list[1]->value.e);
 	} else {

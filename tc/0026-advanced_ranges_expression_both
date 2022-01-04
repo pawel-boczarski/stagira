@@ -22,8 +22,11 @@ seq(
     )
 ) : "printRange";
 
-now "print numbers 2,3,4" [out](2..4) printRange(2..4);
+now "print numbers 2,3,4 , checking if expressions work in ranges"
+    [out](2..4) printRange(set[bind](2)..4);
 now "horizontal line again" [out] print("-------");
-now "print all numbers" [out](0..4) printRange(0..4);
+now "print all numbers, checking if expressions work in ranges"
+    [out](0..4) printRange(0..set[bind](4));
 now "horizontal line once again" [out] print("-------");
-now "print second-to-last two numbers" [out](3..4) printRange(3..4);
+now "print second-to-last two numbers, checking if expressions work in ranges"
+[out](3..4) printRange(set[bind](3)..set[bind](4));

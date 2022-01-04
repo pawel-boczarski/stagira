@@ -1,0 +1,7 @@
+func "a simple function with range"
+[a..b,out]
+(a..b)
+    print("This should be printed once only") : "rangeTest";
+
+now "check normal case" [0..4](0..4) rangeTest[0..4];
+now "check abnormal case 1" [0..4](0..4) rangeTest[0.."a"];

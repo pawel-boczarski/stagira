@@ -1,0 +1,58 @@
+func "for making a bubble sort step"
+[a,b,store,unordered]
+(a,b)
+    seq(
+        if(op[bind](get[bind](a), ">", get[bind](b)),
+            seq(
+                get[store](a),
+                get[a](b),
+                get[b](store),
+                set[unordered](1)
+            )
+        )
+    )
+: "swapCellsIfUnordered";
+
+func "for sorting a row once"
+[a..b,store,10,11,unordered]
+(a..b,store,10,11,unordered)
+    seq(
+            set[unordered](0),
+            set[10](a),
+            loop(
+                op[bind](get[bind](10), "<", set[bind](b)),
+                seq(
+                    swapCellsIfUnordered[get[bind](10),
+                                     op[bind](get[bind](10), "+", 1),
+                                     11,set[bind](unordered)],
+                    op[10](get[bind](10), "+", 1)
+                )
+            )
+    )
+: "singleSweep";
+
+func "for doing an exhaustive sort"
+[a..b,9,10,11,12]
+(a..b,9,10,11,12)
+    seq(
+        set[12](1),
+        loop(
+            get[bind](12),
+            singleSweep[set[bind](a)..set[bind](b),9,12]
+        )
+    )
+: "bubbleSort";
+
+now "setup bubbles to sort" [0..4]
+    seq(set[0](56), set[1](13), set[2](0), set[3](11), set[4](57));
+
+now "print the table, perform full bubble sort, then print the table again"
+    [0..4,5,10,11,12,out](0..4,5,10,11,12)
+    seq(
+        print("++++++++++++++++++++++++++++++++++++++++++"),
+        seq(get[out](0), get[out](1), get[out](2), get[out](3), get[out](4)),
+        print("++++++++++++++++++++++++++++++++++++++++++"),
+        bubbleSort[0..4],
+        seq(get[out](0), get[out](1), get[out](2), get[out](3), get[out](4)),
+        print("++++++++++++++++++++++++++++++++++++++++++")
+    );

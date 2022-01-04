@@ -63,6 +63,8 @@ int _require_access(struct binding_context *bc, int place, int write) {
 				}
 				if(binding->type != ast_number) {
 					printf("TODO: implement recursive bindings if possible, can't serve this now\n");
+					ast_debug_print(binding);
+					assert(0);
 					return 0;
 				}
 				arche = binding->value.num;
@@ -81,6 +83,8 @@ int _require_access(struct binding_context *bc, int place, int write) {
 				}
 				if(binding->type != ast_number) {
 					printf("TODO: implement recursive bindings if possible, can't serve this now\n");
+					ast_debug_print(binding);
+					assert(0);
 					return 0;
 				}
 				telos = binding->value.num;

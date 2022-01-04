@@ -109,15 +109,15 @@ term: LITERAL
     | STRING
     | NUMBER
     | range
-    | paren_termlist
+//    | paren_termlist /* todo does it belong here? */
     | unrestricted_call
 ;
 
-range: NUMBER DOUBLE_PERIOD NUMBER { $$ = ast_range_new($1, $3); }
+range: term DOUBLE_PERIOD term { $$ = ast_range_new($1, $3); } /*NUMBER DOUBLE_PERIOD NUMBER { $$ = ast_range_new($1, $3); }
       | NUMBER DOUBLE_PERIOD LITERAL { $$ = ast_range_new($1, $3); }
       | LITERAL DOUBLE_PERIOD NUMBER { $$ = ast_range_new($1, $3); }
       | LITERAL DOUBLE_PERIOD LITERAL { $$ = ast_range_new($1, $3); }
-;
+*/    ;
 
 paren_termlist_start: L_PAREN { $$ = ast_list_new(); }
 ;

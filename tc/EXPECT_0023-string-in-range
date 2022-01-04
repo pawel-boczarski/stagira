@@ -1,0 +1,4 @@
+This should be printed once only
+Only literals, numbers and expressions may be range ends, have (right side): STR: 'a'
+eval: one of bindings is invalid for range.
+_eval_in_child_context: could not bind write-out parameters.
